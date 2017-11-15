@@ -1,0 +1,7 @@
+set.seed(103)
+x <- rnorm(500, 0, sd=0.25)
+y <- rnorm(500, 0, sd=0.25)
+plot(y ~ x, xlim=c(-1,1), ylim=c(-1,1), ylab="", xlab="")
+title(main="Science is Awesome", xlab="Stuff", ylab="Other Stuff")
+lm1 <- lm(y ~ x)
+abline(lm1, col=2, lty=2)

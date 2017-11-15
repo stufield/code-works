@@ -1,0 +1,41 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1038\cocoasubrtf250
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww15000\viewh12400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural\pardirnatural
+
+\f0\fs24 \cf0 Instructions for pine12_R for Anna & Jen:\
+\
+1) Unzip pine12_R.zip\
+\
+2) Make sure all files are in the same containing folder and put it wherever in your system you like. There should be the main program, pine12, the parameters file, SetParameters, and the functions that these two other files will need to complete their tasks, TreeFunctions. Make sure they're all together. Do NOT change their names as they are called elsewhere, so if you do, you'll have to change the function calls elsewhere to reflect those changes.\
+\
+3) Open pine12.R (in TinnR or just the default editor)\
+\
+4) At the top of the program in line 9, change the path to reflect where you've put these 3 files\
+\
+5) pine12.R should now run.\
+\
+6) select all and run\
+\
+7) It's in a function, so nothing will happen yet. Once you're loaded the pine12() function you can give it whatever inputs you like and rerun the function with those inputs. See the arguments available in line 15.\
+\
+8) To run pine12 with the defaults (see line 15) just type: pine12()\
+\
+9) to turn off the plots, add the argument: plots = 0\
+\
+10) to return only the final solution for 300 years type: pine12(Gen=300, plot=0)$Final_Pop\
+\
+11) for all stages over the projection: pine12(Gen=300, plot=0)$Pop_Projection\
+\
+12) if you'd like to save any of these outputs, simply give it a name and save it to .csv:\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural\pardirnatural
+\cf0 xxx = pine12(Gen=300, plot=0)$Final_Pop\
+write.csv(xxx, file="filename.csv", row.names=TRUE)\
+\
+13) That's it. Let me know if you run into any trouble.\
+\
+Cheers,\
+Stu\
+}
