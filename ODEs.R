@@ -1,135 +1,151 @@
-###################################
-## Solving ODEs with lsoda in R
-###################################
-require(deSolve)
-#####################
-## Logistic growth
-#####################
+# --------------------------------
+# Solving ODEs with lsoda in R
+# --------------------------------
+library(magrittr)
+library(deSolve)
+# Logistic growth
 ODEfun <- function(t, y, parms) {
-   N <- y[1]
-   with(as.list(parms), {
-     	dN <- r * N * (1 - N/K)
-     	list(dN) 
-   })
-} 
+  N <- y[1L]
+  with(parms, {
+    dN <- r * N * (1 - N/K)
+    list(dN)
+  })
+}
 
-logistic <- as.data.frame(lsoda(c(N=0.1), times=seq(0, 10, by=0.1), func=ODEfun, parms=c(r=0.9, K=5)))
+logistic <- deSolve::lsoda(
+  y = c(N = 0.1),
+  times = seq(0, 10, by = 0.1),
+  func = ODEfun,
+  parms = list(r = 0.9, K = 5)) %>% data.frame()
+
 head(logistic)
-plot(N ~ time, data=logistic, ylab="N", xlab="time", col="navy")
+plot(N ~ time, data = logistic, ylab = "N", xlab = "time", col = "navy",
+     main = "Logistic Growth")
 
 
-#############################
-### The SI model 
-#############################
-# assumes births & deaths equal and deaths from disease occur on timescale longer than we're interested in.
-tInt    <- seq(0, 25, by=1/2)
-pars    <- c(beta=0.75)
-Initial <- c(S=4999, I=1)
+# ---------------
+# The SI model
+# ---------------
+# assumes births & deaths equal and deaths
+# from disease occur on timescale longer than we're interested in
+SIfun <- function(t, y, parms) {
+  S <- y[1L]
+  I <- y[2L]
+  with(parms, {
+    dS <- -beta * S * (I / (S + I))
+    dI <- beta * S * (I / (S + I))
+    list(c(dS, dI))
+  })
+}
 
-SIfun <- function(t, y, parms) { 
-	S <- y[1] 
-	I <- y[2]
-	with(as.list(parms), {
-		dS   <- -beta * S * (I/(S+I))
-		dI   <- beta * S * (I/(S+I))
-		ODEs <- c(dS, dI)
-		list(ODEs)
-	})
-} 
-
-SIout <- as.data.frame(lsoda(Initial, times=tInt, func=SIfun, parms=pars))
+pars  <- list(beta = 0.75)
+init  <- c(S = 4999, I = 1)
+SIout <- data.frame(
+  lsoda(y = init, times = seq(0, 25, by = 0.5), func = SIfun, parms = pars)
+  )
 head(SIout)
 
-par(mfrow=c(1, 2)) 
-plot(S ~ time, data=SIout, ylab="Susceptible= blue", xlab="time", col="navy")
-points(I ~ time, data=SIout, col="darkred")
-plot(I ~ S, data=SIout, ylab="Susceptible", xlab="Infected") 
+par(mfrow = c(1, 2))
+plot(S ~ time, data = SIout, ylab = "Susceptible= blue",
+     xlab = "time", col = "navy")
+points(I ~ time, data = SIout, col = "darkred")
+plot(I ~ S, data = SIout, ylab = "Susceptible", xlab = "Infected")
 
 
-########################
-### SIR model
-########################
-tInt    <- seq(0, 150, by=1/2) 
-pars    <- c(beta=0.9, gamma=0.8) 
-initial <- c(S=4999, I=1, R=0) 
+# -----------
+# SIR model
+# -----------
+SIRfun <- function(t, y, parms) {
+  S <- y[1L]
+  I <- y[2L]
+  R <- y[3L]
+  with(parms, {
+    dS <- -beta * S * (I / (S + I))
+    dI <- beta * S * (I / (S + I)) - (gamma * I)
+    dR <- gamma * I
+    list(c(dS, dI, dR))
+  })
+}
 
-SIRfun <- function(t, y, parms) { 
-	S <- y[1] 
-	I <- y[2]
-	R <- y[3]
-	with(as.list(parms), {
-		dS <- -beta * S * (I/(S+I))
-		dI <- beta * S * (I/(S+I)) - (gamma * I)
-		dR <- gamma * I
-		ODEs <- c(dS, dI, dR) 
-		list(ODEs)
-	})
-} 
+# beta = transmission
+# gamma = recovery
+pars <- list(beta = 0.6, gamma = 0.5)
+init <- c(S = 4999, I = 1, R = 0)
+SIRout <- data.frame(
+  deSolve::lsoda(y = init, times = seq(0, 100, by = 1/2), func = SIRfun, parms = pars)
+)
 
-SIRout <- as.data.frame(lsoda(initial, times=tInt, parms=pars, SIRfun))
-head(SIRout)
+SIRout %>%
+  tidyr::pivot_longer(cols = c("S", "I", "R"), names_to = "status",
+                      values_to = "n") %>%
+  dplyr::mutate(status = factor(status, levels = c("S", "I", "R"))) %>%
+  ggplot2::ggplot(ggplot2::aes(x = time, y = n, colour = status)) +
+  ggplot2::geom_point(size = 2) +
+  NULL
 
-par(mfrow=c(2, 2))
-plot(S ~ time, data=SIRout, ylab="Susceptible", xlab="time", col="navy")
-plot(I ~ time, data=SIRout, ylab="Infected", xlab="time", col="darkred")
-plot(R ~ time, data=SIRout, ylab= "Recovered", xlab="time", col="darkgreen")
-plot(I ~ S, data=SIRout, ylab="Infected", xlab="Susceptible") 
+plot(S ~ time, data = SIRout, ylab = "Susceptible", xlab = "time", col = "navy")
+points(R ~ time, data = SIRout, col = "darkgreen")
+points(I ~ time, data = SIRout, col = "darkred")
+par(mfrow = c(2, 2))
+
+plot(S ~ time, data = SIRout, ylab = "Susceptible", xlab = "time", col = "navy")
+plot(I ~ time, data = SIRout, ylab = "Infected", xlab = "time", col = "darkred")
+plot(R ~ time, data = SIRout, ylab = "Recovered", xlab = "time", col = "darkgreen")
+plot(I ~ S, data = SIRout, ylab = "Infected", xlab = "Susceptible")
 
 
-######################
-### Ottar's example 
-### SEIR model; from EEID 2007
-#################################
-tInt       <- seq(0, 10, by=1/120) 
-parameters <- c(mu=1/50, N=1, beta=1000, sigma=365/8, gamma=365/5) 
-Init       <- c(S=0.06, E=0, I=0.001, R=0.939) 
+# -------------------
+# Ottar's example
+# SEIR model; from EEID 2007
+# --------------------------
+SEIRmod <- function(t, y, parms) {
+  S <- y[1L]
+  E <- y[2L]
+  I <- y[3L]
+  R <- y[4L]
+  with(parms, {
+    dS <- mu * (N - S) - beta * S * I/N
+    dE <- beta * S * I/N - (mu + sigma) * E
+    dI <- sigma * E - (mu + gamma) * I
+    dR <- gamma * I - mu * R
+    list(c(dS, dE, dI, dR))
+  })
+}
 
-SEIRmod <- function(t, y, parms) { 
-	S <- y[1]
-	E <- y[2]
-	I <- y[3]
-	R <- y[4]
-	with(as.list(parms), { 
-		dS <- mu * (N - S) - beta * S * I/N 
-		dE <- beta * S * I/N - (mu + sigma) * E 
-		dI <- sigma * E - (mu + gamma) * I 
-		dR <- gamma * I - mu * R 
-		ODEs <- c(dS, dE, dI, dR) 
-		list(ODEs) 
-	}) 
-} 
-
-SEIRout <- as.data.frame(lsoda(Init, times= tInt, parms= parameters, SEIRmod))
+parameters <- list(mu = 1 / 50, N = 1, beta = 1000, sigma = 365 / 8, gamma = 365 / 5)
+init       <- c(S = 0.06, E = 0, I = 0.001, R = 0.939)
+SEIRout <- data.frame(
+  lsoda(init, times = seq(0, 10, by = 1 / 120), func = SEIRmod, parms = parameters)
+  )
 head(SEIRout)
 
-par(mfrow = c(2, 2)) 
-plot(S ~ time, data=SEIRout, ylab="Susceptible", xlab="time")
-plot(I ~ time, data=SEIRout, ylab="Infected", xlab="time", col="darkred")
-plot(R ~ time, data=SEIRout, ylab="Recovered", xlab="time", col="green")
-plot(I ~ S, data=SEIRout, ylab="Infected", xlab="Susceptible")
+par(mfrow = c(2, 2))
+plot(S ~ time, data = SEIRout, ylab = "Susceptible", xlab = "time")
+plot(I ~ time, data = SEIRout, ylab = "Infected", xlab = "time", col = "darkred")
+plot(R ~ time, data = SEIRout, ylab = "Recovered", xlab = "time", col = "green")
+plot(I ~ S, data = SEIRout, ylab = "Infected", xlab = "Susceptible")
 
 
-##############################################
-### Exercises Evolutionary response (a) & (b)
-###############################################
-tInt <- 0:100
-pars <- c(r=0.2, aopt=10, E=0.03)
+# ---------------------------------------------
+# Exercises Evolutionary response (a) & (b)
+# ---------------------------------------------
+EvolFun <- function(t, y, parms) {
+  x <- y[1L]
+  a <- y[2L]
+  with(parms, {
+    dx <- x * (r - (a - aopt)^2)
+    da <- E * (-2 * (a - aopt))
+    list(c(dx, da))
+  })
+}
 
-EvolFun <-= function(t, y, parms) {
-	x <- y[1] 
-	a <- y[2]
-	with(as.list(parms), {
-		dx <- x * (r - (a - aopt)^2)
-		da <- E * (-2 * (a - aopt))
-		ODEs <- c(dx, da)
-		list(ODEs)
-	})
-} 
-
-Evol <- as.data.frame(lsoda(c(x= 2, a= 9.15), times= tInt, parms= pars, EvolFun))
+pars <- list(r = 0.2, aopt = 10, E = 0.03)
+Evol <- data.frame(
+  lsoda(c(x = 2, a = 9.15), times = 0:100, func = EvolFun, parms = pars)
+)
 head(Evol)
 
-par(mfrow=c(1,2))
-plot(x ~ time, data=Evol, ylab="Population Size", xlab="time", col="navy")
-plot(a ~ time, data=Evol, ylab="Trait Value (mean activation temp.)", xlab="time", col="darkred")
-
+par(mfrow = c(1, 2))
+plot(x ~ time, data = Evol, ylab = "Population Size", xlab = "time", col = "navy")
+plot(a ~ time, data = Evol, ylab = "Trait Value (mean activation temp.)",
+     xlab = "time", col = "darkred")
