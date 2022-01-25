@@ -1,0 +1,266 @@
+---
+title: "Lazyeval in base R"
+author: Stu Field
+date: "`r Sys.Date()`"
+#output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_document:
+    fig_caption: yes
+    code_folding: show
+    number_sections: no
+    toc: yes
+    toc_float:
+      collapsed: no
+ratio: '9:16'
+fontsize: 13pt
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include = FALSE}
+options(width = 100)
+knitr::opts_chunk$set(
+ collapse = TRUE,
+ comment = "#>"
+)
+```
+
+-------
+
+### TL;DR
+
+* promises special objects that are *un-evaluated* expressions
+* use `substitute()` to access the promised expression, but not evaluate it
+* use `eval()` to evaluate the expression in a specific environment
+* data frames are lists & lists are environments
+* *all* function arguments are initially promises
+
+
+---------
+
+
+#### Eval:
+
+> "The expression given as function arguments are not evaluated
+> before the function is called. Instead, the expressions are packaged
+> together with the environment in which they should be evaluated and
+> it is this package that is passed to the function.
+> Evaluation only takes place when the argument is required."
+
+#### Promises:
+
+> "Promise objects are part of `R`’s lazy evaluation mechanism.
+> They contain three slots: a value, an expression, and an environment.
+> When a function is called the arguments are matched and then each of the
+> formal arguments is bound to a promise. The expression that was given 
+> for that formal argument and a pointer to the environment the function
+> was called from are stored in the promise."
+
+
+
+--------
+
+#### Lazyeval
+
+Lazy evaluation is a mechanism used by `R` (and many functional languages)
+to delay the evaluation of an object until it is needed. To do this, `R`
+has a data structure (object) called a "promise", which is an un-evaluated
+expression, that can later be "fulfilled" by assigning it a value via
+evaluation in a given environment.
+
+Lazy evaluation (and "tidyeval") has and still remains a maddening, confusing,
+and veritable Dante's Inferno of frustration for me. Every time I think
+I have it nailed down, it turns around and slaps me in the face and says:
+"oh no you don't!". It's a constant "2 steps forward, and 1.9 steps back".
+This is an attempt to consolidate lazyeval gains and understanding, to
+document what I currently know, and not have to start over every time
+I need to dive into the lazyeval world yet again.
+
+
+-------
+
+### Examples of lazyeval
+
+```{r ab}
+f <- function(a, b) {
+  # 'a' and 'b' are only promises, lazyeval means they are
+  # only evaluated when asked for
+  cat("Hello\n")
+}
+f()
+```
+
+
+```{r ifelse}
+f <- function(a, b) {
+  if ( TRUE ) {
+    a
+  } else {
+    b
+  }
+}
+f(4)
+```
+
+```{r ORpipe, error = TRUE}
+f <- function(x) {
+  if ( TRUE || x ) {   # x = promise that is never evaluated
+    cat("Hello 1\n")
+  }
+  if ( TRUE | x ) {   # x = promise that IS evaluated -> Error
+    cat("Hello 2\n")
+  }
+}
+f()
+```
+
+```{r demo-time}
+# note that each argument evaluated only when asked for
+ping <- function(a = Sys.time(), b = Sys.time(), c = Sys.time()) {
+  print(a)
+  Sys.sleep(1)
+  print(b)
+  Sys.sleep(2)
+  print(c)
+  invisible()
+}
+ping()
+```
+
+
+### Leveraging lazyeval
+
+> You can *intentionally* delay evaluation and 
+  evaluate it "on demand" when YOU want.
+
+Until that argument is accessed there is no value associated with
+the promise. When the argument is accessed, the stored expression (symbol)
+is evaluated in the stored environment, and the result is returned.
+The result is also saved by the promise. The `substitute()` function will
+extract the content of the expression slot. This allows the programmer to
+access either the value OR the expression associated with the promise.
+
+* `substitute()` captures a promise -> symbol
+  - "expression slot extractor"
+* `deparse()` converts expression/symbol -> character
+* `eval()` evaluates the symbol in a given environment
+
+True power of `substitute()` means you can capture a promise and evaluate
+it at a time and in a context of *your* choosing.
+
+```{r subst}
+f <- function(x) {
+  subx <- substitute(x)   # no error! keeps promise intact
+  print(subx)
+  chr <- deparse(subx)
+  print(chr)
+  invisible()
+}
+f(foo)
+
+f(1:10)
+```
+
+
+Now we can understand what functions like the `dplyr` verbs `pull()`,
+`mutate()` and `filter()` are doing under the hood:
+
+
+```{r pull2}
+# simplified `dplyr::pull()`
+pull2 <- function(.data, var) {
+  expr <- substitute(var)      # 1st capture the promise
+  # remember:
+  #   1) data frames are lists
+  #   2) lists can behave like environments!
+  eval(expr, envir = .data)   # 2nd evaluate it in context of `.data`
+}
+
+pull2(mtcars, mpg)
+```
+
+```{r mutate2}
+# simplified `dplyr::mutate()`
+mutate2 <- function(.data, expr_calc) {
+  expr <- substitute(expr_calc)              # 1st capture the promise
+  .data$new_var <- eval(expr, envir = .data) # 2nd evaluate it in context of `.data`
+  .data
+}
+
+mutate2(head(mtcars), mpg * 2)
+```
+
+```{r mutate3}
+# slightly more general `mutate2()`
+mutate3 <- function(.data, ...) {
+  dots <- match.call(expand.dots = FALSE)$... # similar to substitute(list(...))
+  for ( var in names(dots) ) {
+    .data[[var]] <- eval(dots[[var]], .data)
+  }
+  .data
+}
+
+mutate3(head(mtcars), mpg3x = mpg * 3, carb2 = carb ^ 2, vs_copy = vs)
+```
+
+```{r filter2}
+# simplified `dplyr::filter()`
+filter2 <- function(.data, ...) {
+  lgl <- eval(substitute(...), .data)
+  stopifnot(is.logical(lgl), length(lgl) == nrow(.data))
+  .data[lgl, ]
+}
+
+filter2(mtcars, cyl == 8 & mpg > 15)
+```
+
+
+
+### Detecting promises
+
+From the `R` manual:
+
+> Within the R language, promise objects are almost only seen implicitly:
+> actual function arguments are of this type. There is also a 
+> `delayedAssign()` function that will make a promise out of an expression.
+> There is generally
+> **no way in R code to check whether an object is a promise or not,**
+> **nor is there a way to use R code to determine the environment of a promise.**
+
+
+So it appears you can *create* a promise, but not detect whether an object
+is a promise or not. Boo! :(
+
+### Forcing promises
+
+To "force" a promise is nothing more than to assign a value to the promise
+slot via evaluation. This can be accomplished either by calling the
+promise variable, or by using the `force()` function.
+
+
+```{r force, fig.height = 5, fig.width = 9}
+par(mfrow = 1:2)
+f <- function(x, y = deparse(substitute(x))) {
+  x <- log(x)
+  plot(x, main = y) # 'y' is forced AFTER 'x' has changed
+  invisible()
+}
+f(1:10)
+
+# we can force 'y' first
+f2 <- function(x, y = deparse(substitute(x))) {
+  force(y)
+  x <- log(x)
+  plot(x, main = y)
+  invisible()
+}
+f2(1:10)
+```
+
+-------
+
+### Resources
+
+* [Roots of quotation](https://milesmcbain.xyz/posts/the-roots-of-quotation/)
+
+* [r-bloggers: About lazy evaluation](https://www.r-bloggers.com/2018/07/about-lazy-evaluation/)
