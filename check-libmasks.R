@@ -4,17 +4,16 @@ check_libmasks <- function() {
   lib2 <- libs[2L]
   newlibs <- dir(lib1)
   is_lib <- vapply(newlibs, function(.x)
-    #all(c("NAMESPACE", "DESCRIPTION", "Meta") %in% dir(file.path(lib1, .x))),
-    length(dir(file.path(lib1, .x), pattern = "Meta")) > 0,
-    NA)
+    length(dir(file.path(lib1, .x), pattern = "Meta")) > 0L, NA)
   newlibs <- newlibs[is_lib]
-  if ( length(newlibs) > 0 ) {
+  if ( length(newlibs) > 0L ) {
+    writeLines(cli::rule(line = 2, line_col = "red"))
     message(
       "Attention! You have over-installed packages!\n",
       "Potentially dangerous installations:"
     )
-    .f <- function(...) tryCatch(as.character(utils::packageVersion(...)),
-                                 error = function(e) NA_character_)
+    .f <- function(...) tryCatch(utils::packageDescription(..., fields = "Version"),
+                                 warning = function(w) NA_character_)
     v1 <- vapply(newlibs, .f, lib.loc = lib1, "", USE.NAMES = FALSE)
     v2 <- vapply(newlibs, .f, lib.loc = lib2, "", USE.NAMES = FALSE)
     df <- data.frame(p = newlibs, l1 = package_version(v1),
