@@ -1,0 +1,25 @@
+Typeface:				Fontindex:
+---------------------------------
+serif						plain
+serif						italic
+serif						bold
+serif						bold italic
+serif						cyrillic
+serif						oblique cyrillic
+serif						EUC
+sans serif				plain
+sans serif				italic
+sans serif				bold
+sans serif				bold italic
+script					plain
+script					italic
+script					bold
+gothic english			plain
+gothic german			plain
+gothic italian			plain
+serif symbol			plain
+serif symbol			italic
+serif symbol			bold
+serif symbol			bold italic
+sans serif symbol		plain
+sans serif symbol		italic 
