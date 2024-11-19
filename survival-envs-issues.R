@@ -6,11 +6,11 @@ reprex::reprex({
   library(usethis)
   library(dplyr)
 
-  apts <- attributes(SomaGlobals::sim_test_data)$sig_feats$surv
+  apts <- attributes(splyr::sim_adat)$sig_feats$surv
   frm  <- SomaSurvival:::createSurvFormula(apts)
 
-  log_data <- select(sim_test_data, time, status, all_of(apts)) %>%
-    log10() %>% centerScaleData()
+  log_data <- select(sim_adat, time, status, all_of(apts)) |>
+    log10() |> centerScaleData()
 
   model <- survival::survreg(frm, data = log_data)
 

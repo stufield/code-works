@@ -17,8 +17,8 @@ capture_snapshot <- function(code, make_reproducible = FALSE) {
   invisible()
 }
 
-capture_snapshot(diffAdats(sim_test_data, sim_test_data[, -10]))
-capture_snapshot(diffAdats(sim_test_data, sim_test_data[, -10]), TRUE)
+capture_snapshot(diffAdats(sim_adat, sim_adat[, -10L]))
+capture_snapshot(diffAdats(sim_adat, sim_adat[, -10L]), TRUE)
 
 capture_snapshot2 <- function(code, make_reproducible = FALSE) {
   if ( make_reproducible ) testthat::local_reproducible_output()
@@ -31,5 +31,5 @@ capture_snapshot2 <- function(code, make_reproducible = FALSE) {
   )
   invisible()
 }
-capture_snapshot2(diffAdats(sim_test_data, sim_test_data[, -10]))
-capture_snapshot2(diffAdats(sim_test_data, sim_test_data[, -10]), TRUE)
+capture_snapshot2(diff_adats(sim_adat, sim_adat[, -10L]))
+capture_snapshot2(diff_adats(sim_adat, sim_adat[, -10L]), TRUE)
