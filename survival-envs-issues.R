@@ -6,7 +6,7 @@ reprex::reprex({
   library(usethis)
   library(dplyr)
 
-  apts <- attributes(splyr::sim_adat)$sig_feats$surv
+  apts <- attributes(wranglr::simdata)$sig_feats$surv
   frm  <- SomaSurvival:::createSurvFormula(apts)
 
   log_data <- select(sim_adat, time, status, all_of(apts)) |>
