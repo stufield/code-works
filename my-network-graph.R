@@ -1,21 +1,24 @@
-
-#' NETWORK GRAPHING
+#' NETWORK GRAPHS
 #' 
 #' Stu's function for plotting networks
 #' 
-#' Details
+#' Details ...
 #' 
 #' @param dat value
-#' @param arrowcolors R colors. Length = 2
-#' @param legend Logical. Should a legend be added to plot?
-#' @param ... Additional argumnets passed to the S3 plot method for
-#' the class returned by graph.adjacency. Typically a newtwork graph object.
-#' @return A network graph
-#' @author Stu Field 
-#' @seealso \code{\link{igraph}} 
-#' @references %% ~put references to the literature/web site here~ 
-#' @examples 
 #' 
+#' @param arrowcolors R colors. Length = 2
+#' 
+#' @param legend Logical. Should a legend be added to plot?
+#' 
+#' @param ... Additional argumnets passed to the S3 plot method for
+#'   the class returned by graph.adjacency. Typically a newtwork graph object.
+#' 
+#' @return A network graph
+#' 
+#' @author Stu Field 
+#' @seealso \pkg{igraph}}
+#' 
+#' @examples 
 #' nodes <- c("SEED",
 #'            expression(SD[1]),
 #'            expression(SD[2]),
@@ -91,7 +94,6 @@
 
 #' #rglplot(graph.adjacency(adjmat), vertex.color="navy", vertex.label=LETTERS[1:25], edge.arrow.size=.3, edge.color=1, vertex.label.color="white")
 #' 
-#' 
 #' @import igraph
 #' @export CreateNetGraph
 CreateNetGraph <- function(dat, arrowcolors=c("green", "red"), legend=FALSE, ...) {
@@ -143,5 +145,3 @@ CreateNetGraph <- function(dat, arrowcolors=c("green", "red"), legend=FALSE, ...
              legend=c("Susceptible", "Infected"), bg="lavender", box.lty=0, cex=0.9)
   }
 }
-
-

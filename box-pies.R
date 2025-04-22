@@ -1,0 +1,20 @@
+
+plot_box_pies <- function(filename = NULL) {
+  set.seed(101)
+  figure(filename, width = 12, height = 8)
+  pp <- function() pie(sample(1:5))
+  on.exit(close_figure(filename))
+  par(mfrow = c(1, 1))
+  par(fig = c(0, 1, 0, 0.9))
+  boxplot(lapply(1:5, function(.x) rnorm(20, mean = .x)), col = col_string)
+  par(fig = c(0.05, 0.25, 0.7, 1), new = TRUE)
+  pp()
+  par(fig = c(0.2, 0.45, 0.7, 1), new = TRUE)
+  pp()
+  par(fig = c(0.4, 0.6, 0.7, 1), new = TRUE)
+  pp()
+  par(fig = c(0.53, 0.8, 0.7, 1), new = TRUE)
+  pp()
+  par(fig = c(0.7, 0.95, 0.7, 1), new = TRUE)
+  pp()
+}

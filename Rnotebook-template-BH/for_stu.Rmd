@@ -1,0 +1,247 @@
+---
+title: "MPO Reference Range"
+output:
+  html_document: 
+      toc: true
+      toc_float: 
+        collapsed: false
+      code_folding: hide
+  html_notebook: default
+---
+
+<!-- Custom CSS Styles -->
+<style type="text/css">
+.table {
+
+    width: auto;
+    margin-left: 1in;
+
+}
+</style>
+```{r functions for stu, echo=FALSE, message=F}
+percentile.table <- function(df, p=c(.01,.05,.10,.25,.33,.50,.67,.75,.90,.95,.99)) {
+	df = as.data.frame(df)
+	as.data.frame(sapply(colnames(df), function(cn) {
+		quantile(as.numeric(as.character(df[[cn]])), p, na.rm=T)
+	}))
+}
+
+add.test.col <- function(mdat, test.data, abbr, result.code, name=NA, units=NA, type=NA, reported=NA, trim.na=FALSE) {
+	if (length(test.data) != nrow(mdat))
+		stop("test.data length doesn't equal rows in mdat")
+  if (missing(abbr) | missing(result.code))
+    stop("Must provide abbr and result.code")
+  test.name = sprintf("%s.code%s", abbr, result.code)
+  if (test.name %in% names(mdat))
+    stop("That test.name is already in the mdat")
+	if (!any(grepl("[.]code", test.name)))
+	  warning("test name doesn't have the .code substring, so it won't be treated as a test by get.tests(). Consider renaming")
+	test.data[test.data=="None"] = NA
+	
+	local.col.meta = get.col.meta(mdat)
+	local.col.meta[ test.name, "Name"] = name
+	local.col.meta[ test.name, "UnitsofMeasure"] = units
+	local.col.meta[ test.name, "TestType"] = type
+	local.col.meta[ test.name, "Reported"] = reported
+	local.col.meta[ test.name, "Abbrev"] = abbr
+	local.col.meta[ test.name, "ResultCode"] = result.code
+	
+	
+	mdat = cbind(mdat, test.data)
+	#print(c(length(test), length(names(mdat)), length(test.name)))
+	names(mdat)[ncol(mdat)] = test.name
+
+	if (trim.na) {
+		mdat <- mdat[!is.na(test.data), ]
+  }
+
+	attributes(mdat)$Col.Meta <- as.list(local.col.meta)
+	mdat
+}
+
+get.col.meta <- function(dataset) {
+	if (!"Col.Meta" %in% names(attributes(dataset))) 
+		stop("No column meta data found in the attributes. The attributes may have been stripped when the data.frame was modified.")
+	col.meta = as.data.frame(attributes(dataset)$Col.Meta, stringsAsFactors=F)
+  
+	if (nrow(col.meta) != length(get.tests(dataset)))
+	  stop("Number of tests doesn't match dimension of col.meta. This usually happens when you add a column to an mdat manually instead of using add.test.col()")
+	row.names(col.meta) = get.tests(dataset)
+	if ("TestType" %in% names(col.meta))
+		col.meta$TestType = factor(col.meta$TestType, levels=test.type.levels)
+	col.meta
+
+}
+```
+
+```{r setup, echo=FALSE, message=FALSE}
+#source("../scripts/functions/orig.R")
+#source.packages()
+library(dplyr)
+library(tidyr)
+library(magrittr)
+library(DT)
+library(knitr)
+library(deming)
+# This function loads all of our LIMS data. I'll replace it with fake data here:
+#load.big.data()
+fake.col.meta <- list(Name=c(), Abbrev=c(), UnitsOfMeasure=c(), ResultCode=c(), TestType=c(), Reported=c())
+big.data <- data.frame(OriginalOrderDate <- sprintf("2016-%02i-01", sample(1:12, 1000, replace = T))) %>%
+  {attributes(.)$Col.Meta <- fake.col.meta; .} %>%
+  add.test.col(rnorm(1000, mean=200, sd=50), abbr="MPO", result.code='MPO', name="MPO", 
+               units='pmol/L', reported = 1, type='Inflammation')
+  
+test.names <- get.test.names(big.data)
+
+```
+
+
+# Introduction
+This short report summarizes the analysis of the new MPO assay. The analysis
+includes comparing the old and new MPO assays and providing data to support new
+reference range calculations.
+
+# Data Preparation
+Data for the current MPO assay was obtained from the Big Dataset, which is
+current through August. The MPO data for the new MPO assay was provided by Hari
+Nair. 
+
+```{r data_prep}
+# or
+dats = list()
+dats$orig <- big.data %>%
+              filter(OriginalOrderDate <= "2016-09-01") %>% # Need this for future consistency 
+              select.mdat(reported.only=T)
+#dats$mpo <- read.csv("../datasets/CHL MPO Reference Range Data 09 16 16.csv")
+dats$mpo <- data.frame(Result=rnorm(500, mean=220, sd=50))
+#dats$side.by.side <- read.csv("../datasets/side_by_side.csv")
+dats$side.by.side <- data.frame(Dimension=rnorm(500, mean=210, sd=50),
+                                COBAS.Result=rnorm(500, mean=220, sd=50))
+```
+
+# Results
+
+## Percentile Table
+The following table compares quantiles between the current MPO assay and the
+new MPO assay.
+
+```{r section1}
+old <- percentile.table(dats$orig[, test.names$MPO.code, drop=F])  %>%
+  add_rownames("Percentile") %>%
+  rename_("Current MPO"="MPO.codeMPO")
+
+new <- percentile.table(dats$mpo[, "Result", drop=F]) %>%
+  add_rownames("Percentile") %>%
+  rename_("New MPO"="Result")
+
+perc.table <- merge(old, new) %>%
+  arrange(as.numeric(gsub("%", "", .$Percentile)))
+
+kable(perc.table, digits=1)
+
+```
+
+## Quantile Concordance 
+
+This plot shows the concordance between the percentiles listed in the previous
+table. This plot reveals a bias toward larger values using the new MPO assay.
+
+```{r concordance, fig.height=6, fig.width=6}
+concord.plot(perc.table$Current, perc.table$New, xlab="Current MPO",
+             ylab="New MPO", main="Quantile-Quantile Plot")
+```
+
+## Distribution Comparison
+
+This plot shows the distributions of both MPO assays. This also reveals the new
+MPO assay has slightly higher values. 
+
+```{r fig.height=6, fig.width=6}
+par(par.def)
+list.pdf(list("Current MPO (Big Dataset)"=dats$orig$MPO.codeMPO,
+              "New MPO (Ref Range Set)"=dats$mpo$Result),
+         main="Distributions of MPO (Non-Paired)", xlab="MPO (pmol/L)", xlim=c(0, 500))
+
+```
+
+## Side by Side Comparison
+
+This plot shows a comparison of samples run on the current and new MPO assays.
+The x and y axes are shown on a log scale. The bulk of the distribution is
+located on the concordance line. The new MPO assay signals higher for lower
+valus and lower for high values. The two distributions are significantly
+different at a 0.05 significance level by a Wilcoxon test and a log-transformed
+t-test. The p-value was 0.02 for both tests. 
+  
+The percentile comparison plot has been overlayed on this plot in red. This
+highlights that the samples used to calculate the new refernece range have
+greater values than the side by side comparison. 
+
+```{r, fig.height=6, fig.width=6}
+concord.plot(dats$side.by.side$Dimension, dats$side.by.side$COBAS.Result,
+             xlab="Current MPO (pmol/L)", ylab="New MPO (pmol/L)",
+             main="Concordance between MPO Assays", log='', xlim=c(100, 750), ylim=c(100,750))
+scatter.plot(perc.table$Current, perc.table$New, xlab="Current MPO",
+             ylab="New MPO", main="Quantile-Quantile Plot", pch=19,
+             col='red', add=T, include.cor = F, include.ab = T, line.col = 'red')
+```
+
+## Reference Range Estimation from Side by Side
+  
+```{r, fig.height=6, fig.width=6}
+# Fake
+ranges <- list(MPO.codeMPO=c(350, 633))
+attributes(ranges$MPO.code604)$risks <- "OBH"
+  
+concord.plot(dats$side.by.side$Dimension, dats$side.by.side$COBAS.Result,
+             xlab="Current MPO (pmol/L)", ylab="New MPO (pmol/L)",
+             main="Concordance between MPO Assays", log='', xlim=c(0, 1000),
+             ylim=c(0,1000), include.ab=F)
+
+abline(47.65, .9, col='blue', lwd=2)
+new.ranges <- ranges$MPO.codeMPO*.7 + 45
+segments(-1000, new.ranges[1], ranges$MPO.codeMPO[1], col='red', lwd=2)
+segments(-1000, new.ranges[2], ranges$MPO.codeMPO[2], col='red', lwd=2)
+segments(ranges$MPO.codeMPO[1], -1000, y1=new.ranges[1], col='red', lwd=2)
+segments(ranges$MPO.codeMPO[2], -1000, y1=new.ranges[2], col='red', lwd=2)
+data.frame("Old Cutoff"=ranges$MPO.codeMPO, "New Cutoff"=new.ranges) %>% kable
+```
+
+## Current percentages
+
+This table shows how many patients have Optimal, Borderline, and High Risk
+designations on the current MPO assay. 
+
+```{r section2, fig.width=4}
+rr <- data.frame(MPO.codeMPO <- sample(c("O", "B", "H"), 1000, replace=T))
+
+rr$MPO %>%
+  perc.table %>%
+  as.data.frame %>%
+  {.$. %<>% replace.names(list(B="Borderline", H='High Risk', O="Optimal")); .} %>%
+  {.$. %<>% factor(levels=c("Optimal", "Borderline", "High Risk")); .} %>% 
+  rename_("Risk"='.', "Percentage"="Freq")  %>%
+  arrange(Risk) %>%
+  kable(digits=1)
+
+```
+
+## New ranges with same percentages
+
+The following reference range would maintain the current percentages of optimal
+(~70%), borderline (~25%), and high risk (~5%).
+
+* Ref Cutoff 1: `r quantile(dats$mpo$Result, p=.7)`
+* Ref Cuttof 2: `r quantile(dats$mpo$Result, p=.95)`
+
+-----------------
+
+# Discussion
+
+The samples measured on the new MPO assay have greater MPO values that the big
+dataset. The side by side comparison shows that values on the two assays don't
+show the same bias observed between the reference range samples and the big
+dataset. This may suggest that using these reference range samples will result
+in reference ranges that are too high.
+
+

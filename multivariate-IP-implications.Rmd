@@ -1,0 +1,137 @@
+---
+title: "Note: Patent Implications of Multivariate Models"
+author: "Stu Field"
+date: "`r format(Sys.Date(), '%e %B %Y')`"
+output:
+  html_notebook:
+    toc: true
+    toc_float:
+      collapsed: false
+    code_folding: show
+    number_sections: true
+ratio: '9:16'
+tables: yes
+fontsize: 12pt
+---
+
+
+
+```{r setup, echo = FALSE}
+library(tibble)
+library(dplyr)
+library(ggplot2)
+thm <- theme_bw() +
+  theme(
+    panel.background = element_rect(fill = "transparent", colour = NA),
+    plot.background = element_rect(fill = "transparent", colour = NA),
+    legend.position = "top",
+    legend.background = element_rect(fill = "transparent", colour = NA),
+    legend.key = element_rect(fill = "transparent", colour = NA)
+  )
+theme_set(thm)
+set.seed(101)
+n     <- 1000
+Sigma <- matrix(c(1, 0.8, 0.8, 1), 2, 2)
+data  <- rbind(MASS::mvrnorm(n, mu = c(1, 0), Sigma, empirical = TRUE),
+               MASS::mvrnorm(n, mu = c(0, 1), Sigma, empirical = TRUE)) |>
+  tibble::as_tibble() |>
+  setNames(c("FeatA", "FeatB")) |>
+  mutate(group = rep(c("control", "disease"), each = n)) |>
+  group_by(group)
+```
+
+
+
+# Context
+
+Statistical models containing multiple features (e.g. biomarkers) can be
+particularly interesting from a intellectual property (IP) patent perspective.
+This is because simply combining new biomarkers with known ones is not *novel*
+and would be considered "obvious". However, multivariate models are not simply
+additive, and the relationship between an endpoint of interest and feature A
+may change completely when considered in the context of feature B (and C, D,
+... , Z). This context dependent relationship is *not* obvious and thus might
+be considered novel. I illustrate this below with a simulated, and admittedly
+contrived, bivariate (2 feature) example, which can be extended to *n*
+features.
+
+
+# Univariate vs Bivariate
+
+### Univariate: Feature A
+
+Alone, there is *some* modest separation between disease and 
+control groups, yet the distributions mostly overlap.
+
+```{r feature-A}
+data |>
+  summarize(n = n(), Mean_FeatA = mean(FeatA) |> round(2L))
+
+data |>
+  ggplot(aes(x = FeatA, col = group)) +
+  geom_density()
+```
+
+### Univariate: Feature B
+
+Likewise for feature B, alone, there is *some* separation,
+but yet again the distributions mostly overlap.
+
+```{r feature-B}
+data |>
+  summarize(n = n(), Mean_FeatB = mean(FeatB) |> round(2L))
+
+data |>
+  ggplot(aes(x = FeatB, col = group)) +
+  geom_density()
+```
+
+
+### Bivariate: Features A + B
+
+However, both features in combination shows much more separation than 
+either in isolation, possibly allowing a 2 feature model with considerably 
+more predictive power than either single feature model.
+
+```{r bivariate-plot}
+data |>
+  ggplot(aes(x = FeatA, y = FeatB, col = group)) +
+  geom_point() +
+  geom_point(alpha = 0.5) +
+  geom_abline() +
+  geom_smooth()
+```
+
+
+
+# Simple Example: linear regression
+
+When features are highly correlated, the relationship between a given 
+feature and the response variable (*outcome*) can be counter-intuitive, 
+highly variable, and even change sign! This is known as Simpson's Paradox.
+In the example below, the relationship between `age` and `wins` goes from 
+a significant *positive* one to non-significant *negative*, when an 
+additional feature is added to the model.
+
+```{r lm-summary}
+age <- c(20, 22, 24, 26, 28, 30, 32, 34, 36, 38)
+age
+years_training <- c(2, 3, 6, 8, 10, 12, 14, 16, 18, 20)
+years_training
+
+# correlation
+cor.test(age, years_training)
+
+wins <- c(2, 2, 2, 3, 3, 3, 3, 3, 4, 4)
+wins
+
+# Single covariate/feature 'age'
+stats::lm(wins ~ age) |> summary()
+
+# Single covariate/feature 'years_training'
+stats::lm(wins ~ years_training) |> summary()
+
+# Two covariates/features 'age + years_training'
+stats::lm(wins ~ age + years_training) |> summary()
+```
+
