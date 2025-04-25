@@ -1,23 +1,23 @@
 # ----- sqs_wrapper documention ----- #
 # Figure sizes:
-#   Proportional scaling of figure size. Default=1
+# Proportional scaling of figure size. Default=1
 # @param hyb.fig.scale
 # @param med.fig.scale
 # @param cal.fig.scale
 #
 # Legend sizes:
-#   Proportional scaling of legend size. Default=1
+# Proportional scaling of legend size. Default=1
 # @param med.legend.scale
 # @param cal.legend.scale
 #
 # Figure widths:
-#   Proportional scaling of figure width. Used for studies with
-#   many plates to provide room for boxes
+# Proportional scaling of figure width. Used for studies with
+# many plates to provide room for boxes
 # @param hyb_fig_width
 # @param med_fig_width
 #
 # Boxplot x-axis:
-#   Jitter labels on x-axis so that they don't overlap
+# Jitter labels on x-axis so that they don't overlap
 # @param hyb_jitter_x
 # @param med_jitter_x
 #
@@ -27,435 +27,468 @@
 # @param skip_med should med.norm be skipped? (F)
 # @param use_log_scale should plots be made with log2-transform or linear space?
 # ----------------------------------- #
-sqs_wrapper <- function(hyb.fig.scale=1, med.fig.scale=1, cal.fig.scale=1,
-                        med.legend.scale=1, cal.legend.scale=1,
-                        hyb.fig.width=1, med.fig.width=1,
-                        hyb.jitter.x=FALSE, med.jitter.x=FALSE, skip_cal=FALSE, skip.med=FALSE,
-                        use.log.scale=TRUE, rfu.thresh=80000, skip.sat.check=TRUE) {
+sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
+                        cal_fig_scale = 1, med_legend_scale = 1,
+                        cal_legend_scale = 1, hyb_fig_width = 1,
+                        med_fig_width = 1, hyb_jitter_x = FALSE,
+                        med_jitter_x = FALSE, skip_cal = FALSE,
+                        skip_med = FALSE, use_log_scale = TRUE,
+                        rfu_thresh = 80000, skip_sat_check = TRUE) {
 
-  cat("Loading template data ...")
-  template.pairs <- load.template.pairs()
-  cat("      done\n")
+  signal_info("Loading template data ...")
+  template_pairs <- load_template_pairs()
 
-  if (! "Adat" %in% names(template.pairs))
-    stop("Adat missing from sqs-data.txt")
-  else if (template.pairs[["Adat"]] == "NULL")
-    stop("You forgot to enter an Adat filename")
-
-  cat("Loading adat ...")
-  adat = load.adat(template.pairs[["Adat"]], remove.buffer=FALSE)
-  sample.type.table = table(adat$SampleType)
-  adat = adat[ adat$SampleType == "Sample", ]
-  template.pairs[['apts']] = match.seq.ids(template.pairs[['apts']], names(adat))
-
-
-
-  if ( nrow(adat) == 0L | !"SampleType"  %in% names(adat) ) {
-    stop("Error parsing adat on SampleType columns")
+  if ( !"Adat" %in% names(template_pairs) ) {
+    stop("Adat missing from `sqs-data.txt`", call. = FALSE)
+  } else if ( template_pairs[["Adat"]] == "NULL" ) {
+    stop("You forgot to enter an ADAT file path", call. = FALSE)
   }
-  cat("               done\n")
-  cat("Processing Adat meta data ...")
-  adat.pairs = load.adat.pairs(adat)
-  cat("  done\n")
-  cat("Writing sqs-data.tex ...")
-  write.sqs.data.tex(template.pairs, adat.pairs, adat, sample.type.table)
 
-  if (use.log.scale)
-    cat(sprintf("\\useLogScaletrue\n"), file="sqs-data.tex", append=TRUE)
-  else
-    cat(sprintf("\\useLogScalefalse\n"), file="sqs-data.tex", append=TRUE)
-  cat("       done\n")
+  signal_info("Loading adat ...")
+  adat <- SomaDataIO::read_adat(template_pairs[["Adat"]])
+  sample_type_table <- table(adat$SampleType)
+  adat <- dplyr::filter(adat, SampleType == "Sample")
+  template_pairs$apts <- SomaDataIO::match_seqIds(template_pairs$apts, names(adat))
 
-  cat("Making hyb norm plots ...")
-  hyb.fails = create.hyb.norm.data(adat, hyb.fig.scale, hyb.fig.width,
-                        jitter.x=hyb.jitter.x, use.log.scale=use.log.scale)
-  cat("      done\n")
+  if ( nrow(adat) == 0L || !"SampleType" %in% names(adat) ) {
+    stop("Error parsing adat on `SampleType` columns", call. = FALSE)
+  }
+  signal_done("done")
+
+  signal_info("Processing Adat meta data ...")
+  adat_pairs <- load_adat_pairs(adat)
+
+  signal_info("Writing sqs-data.tex ...")
+  write_sqs_data_tex(template_pairs, adat_pairs, adat, sample_type_table)
+
+  if ( use_log_scale ) {
+    cat(sprintf("\\useLogScaletrue\n"), file = "sqs-data.tex", append = TRUE)
+  } else {
+    cat(sprintf("\\useLogScalefalse\n"), file = "sqs-data.tex", append = TRUE)
+  }
+  signal_done("done")
+
+  signal_info("Making hyb norm plots ...")
+  hyb_fails <- create_hyb_norm_data(adat, hyb_fig_scale,
+                                    hyb_fig_width, jitter_x = hyb_jitter_x,
+                                    use_log_scale = use_log_scale)
+  signal_done("done")
 
   # check for (cell sample) saturation
-  if (!skip.sat.check) {
-    cat("Checking for saturation ...\n")
-    create.saturation.data(adat, threshold=rfu.thresh)
-    cat("                               done\n")
-  } else
-    cat("Skipping saturation check .........\n")
-
-  if ( !skip.med ) {
-    cat("Making med norm plots ...")
-    med.fails = create.med.norm.data(adat, med.fig.scale, med.legend.scale, med.fig.width,
-                          jitter.x=med.jitter.x, use.log.scale=use.log.scale)
-    cat("      done\n")
+  if ( !skip_sat_check ) {
+    signal_info("Checking for saturation ...")
+    create_saturation_data(adat, threshold = rfu_thresh)
+    signal_done("done")
+  } else {
+    signal_info("Skipping saturation check ...")
   }
 
+  if ( !skip_med ) {
+    signal_info("Making med norm plots ...")
+    med_fails <- create_med_norm_data(adat, med_fig_scale,
+                                      med_legend_scale, med_fig_width,
+                                      jitter_x = med_jitter_x,
+                                      use_log_scale = use_log_scale)
+    signal_done("done")
+  }
 
   if ( !skip_cal ) {
-    cat("Testing Cal SOP criteria ...\n")
-    create.cal.sop.data(adat, template.pairs, cal.fig.scale, cal.legend.scale)
-    cat("                              done\n")
+    signal_info("Testing Cal SOP criteria ...")
+    create_cal_sop_data(adat, template_pairs, cal_fig_scale, cal_legend_scale)
+    signal_done("done")
   }
 
-
-  if ("SampleNotes" %in% names(adat)) {
-    cat("Writing sample notes table ...")
-    sample.notes.table(adat)
-    cat(" done\n")
+  if ( "SampleNotes" %in% names(adat) ) {
+    signal_info("Writing sample notes table ...")
+    sample_notes_table(adat)
+    signal_done("done")
+  } else {
+    signal_info("Skipping sample notes table, no SampleNotes field ...")
   }
-  else
-    cat("Skipping sample notes table, no SampleNotes field\n")
 
-  if ( !skip.med )
-    invisible(c(hyb.fails, med.fails))
-  else
-    invisible(hyb.fails)
-
+  if ( !skip_med ) {
+    invisible(c(hyb_fails, med_fails))
+  } else {
+    invisible(hyb_fails)
+  }
 }
 
 
-load.template.pairs <- function() {
-  tokens <- readLines("sqs-data.txt")
-  tokens <- sapply(tokens, function(x) gsub("#.*$", "", x))    # Remove comments
+# parse_template_pairs
+load_template_pairs <- function() {
+  tokens <- read_text("sqs-data.txt")
+  tokens <- vapply(tokens, function(x) gsub("#.*$", "", x), "") # rm comments
   tokens <- strsplit(tokens, ":")
-  tokens <- tokens[ sapply(tokens, function(x) length(x) > 0) ]    # Remove empty strings at end of file
-  tokens <- tokens[ !sapply(tokens, function(x) length(x) == 1 && x[1] == "") ]      # Remove empty stings
-  template.pairs.temp = lapply(tokens, function(pair) {
-    if (length(pair) != 2)
-      stop(sprintf("sqs-data.txt is in an incorrect format. Should contain 'key: value' pairs.\nFound '%s'", paste(pair, collapse=", ")))
-    key = gsub("^[\t ]+|[\t ]+$", "", pair[1])
-    value= gsub("^[\t ]+|[\t ]+$", "", pair[2])
+  # rm empty strings at end of file
+  tokens <- tokens[vapply(tokens, function(x) length(x) > 0, NA)]
+  # rm empty stings
+  tokens <- tokens[!vapply(tokens, function(x) length(x) == 1L && x[1L] == "", NA)]
+  template_pairs_temp <- lapply(tokens, function(pair) {
+    if ( length(pair) != 2L ) {
+      stop("`sqs-data.txt` is in an incorrect format.\n",
+      "Should contain `key: value` pairs.\n
+      Found: ", value(pair), call. = FALSE)
+    }
+    key   <- gsub("^[\t ]+|[\t ]+$", "", pair[1L])
+    value <- gsub("^[\t ]+|[\t ]+$", "", pair[2L])
     c(key, value)
   })
 
-  template.pairs <- lapply(template.pairs.temp, function(pair) pair[2])
-  names(template.pairs) <- lapply(template.pairs.temp, function(pair) pair[1])
-  if ("AptMenu" %in% names(template.pairs)) {
-    if (template.pairs[['AptMenu']] %in% c("Premium", "450plex")) {
-      column = list(Premium="Premium", "450plex"="On450")[[template.pairs[['AptMenu']]]]
-      apts = SSmenu.df[ SSmenu.df[,column] == 'Y',]$SeqId
-      template.pairs[["apts"]] = apts
+  template_pairs <- lapply(template_pairs_temp, function(pair) pair[2L])
+  names(template_pairs) <- lapply(template_pairs_temp, function(pair) pair[1L])
+
+  if ( "AptMenu" %in% names(template_pairs) ) {
+    if ( template_pairs$AptMenu %in% c("Premium", "450plex") ) {
+      column <- list(Premium = "Premium", "450plex" = "On450")[[template_pairs$AptMenu]]
+      apts <- SSmenu.df[SSmenu.df[, column] == "Y", ]$SeqId
+      template_pairs$apts <- apts
+    } else {
+      stop("AptMenu must be either Premium or 450-plex. ",
+      "Please check `sqs-data.txt`.", call. = FALSE)
     }
-    else
-      stop("AptMenu must be either Premium or 450plex. Please check sqs-data.txt")
+  } else {
+    stop("`AptMenu` missing from `sqs-data.txt`", call. = FALSE)
   }
-  else
-    stop("AptMenu missing from sqs-data.txt")
-  template.pairs
+  template_pairs
+}
 
+load_adat_pairs <- function(adat) {
+  adat_pairs <- list()
+  meta_names <- SomaDataIO::getMeta(adat)
+  if ( "SampleMatrix" %in% meta_names ) {
+    adat_pairs$MatrixName <- tolower(names(sort(table(adat$SampleMatrix),
+                                                decreasing = TRUE))[1L])
+  }
+  adat_pairs$NumSamples <- nrow(adat)
+  adat_pairs$NumPlates  <- length(table(adat$PlateId))
+
+  if ( adat_pairs$NumPlates > 1L ) {
+    adat_pairs$Sets <- sprintf("Sets A-%s", LETTERS[adat_pairs$NumPlates])
+  } else {
+    adat_pairs$Sets <- names(table(adat$PlateId))
+  }
+
+  adat_pairs
 }
 
 
+write_sqs_data_tex <- function(template_pairs, adat_pairs,
+                               adat, sample_type_table) {
 
+  out_file <- file("sqs-data.tex", open = "w")
+  on.exit(close(out_file))
 
-
-
-load.adat.pairs <- function(adat) {
-  adat.pairs <- list()
-  meta.names <- get.meta(adat)
-  if ("SampleMatrix" %in% meta.names)
-    adat.pairs[["MatrixName"]] = tolower(names(sort(table(adat$SampleMatrix), decreasing=TRUE))[1])
-  adat.pairs[["NumSamples"]] = nrow(adat)
-  adat.pairs[["NumPlates"]] = length(table(adat$PlateId))
-  if (adat.pairs[["NumPlates"]] > 1)
-    adat.pairs[["Sets"]] = sprintf("Sets A-%s", LETTERS[adat.pairs[["NumPlates"]]])
-  else
-    adat.pairs[["Sets"]] = names(table(adat$PlateId))
-
-  adat.pairs
-
-
-}
-
-
-
-
-
-write.sqs.data.tex <- function(template.pairs, adat.pairs, adat, sample.type.table) {
-  out.file <- file("sqs-data.tex", open="w")
-  on.exit(close(out.file))
-  process.pair = function(template.pairs, adat.pairs, key) {
-    cat(sprintf("\\renewcommand{\\%s}{", key), file=out.file)
-    if (key %in% names(template.pairs)) {
-      if (template.pairs[[key]] == "NULL") {              # Template is NULL?
-        if (key %in% names(adat.pairs))                # Present in Adat?
-          cat(sprintf("%s}\n", adat.pairs[[key]]), file=out.file)  # Use Adat
-        else                            # Not in Adat
-          cat(sprintf("%s}\n", key), file=out.file)         # Use generic
+  process_pair <- function(template_pairs, adat_pairs, key) {
+    cat(sprintf("\\renewcommand{\\%s}{", key), file = out_file)
+    if ( key %in% names(template_pairs) ) {
+      if ( template_pairs[[key]] == "NULL" ) { # Template is NULL?
+        if ( key %in% names(adat_pairs) ) { # Present in Adat?
+          cat(sprintf("%s}\n", adat_pairs[[key]]), file = out_file)  # Use Adat
+        } else {                       # Not in Adat
+          cat(sprintf("%s}\n", key), file = out_file) # Use generic
+        }
+      } else {   # Template over-ride
+        cat(sprintf("%s}\n", gsub("&", "\\\\&", template_pairs[[key]])),
+            file = out_file)  # Use template value
       }
-      else {                                                           # Template over-ride
-        cat(sprintf("%s}\n", gsub("&", "\\\\&", template.pairs[[key]])), file=out.file)  # Use template value
+    } else { # Not in template
+      if ( key %in% names(adat_pairs) ) {
+        cat(sprintf("%s}\n", adat_pairs[[key]]), file = out_file)  # Use Adat
+      } else {
+        cat(sprintf("%s}\n", "MISSING"), file = out_file)  # Use Adat
       }
     }
-    else {                                # Not in template
-      if (key %in% names(adat.pairs))
-          cat(sprintf("%s}\n", adat.pairs[[key]]), file=out.file)  # Use Adat
-      else
-        cat(sprintf("%s}\n", "MISSING"), file=out.file)  # Use Adat
-    }
-
   }
 
-  lapply(c("ClientName", "MatrixName", "Sets", "AptMenu", "NumPlates", "NumSamples", "SponsorName"), process.pair, template.pairs=template.pairs, adat.pairs=adat.pairs)
+  c("ClientName", "MatrixName", "Sets",
+    "AptMenu", "NumPlates", "NumSamples",
+    "SponsorName") |>
+    lapply(process_pair, template_pairs = template_pairs,
+           adat_pairs = adat_pairs)
 
-  cat(sprintf("\\renewcommand{\\NumApts}{%i}\n", length(template.pairs[["apts"]])), file=out.file)
-  if (length(unique(adat$PlateId)) > 1) {
-    cat("\\renewcommand{\\Plural}{s}\n", file=out.file)
-    cat("\\renewcommand{\\IsAre}{are}\n", file=out.file)
+  cat(sprintf("\\renewcommand{\\NumApts}{%i}\n",
+              length(template_pairs$apts)), file = out_file)
+
+  if ( length(unique(adat$PlateId)) > 1L ) {
+    cat("\\renewcommand{\\Plural}{s}\n", file = out_file)
+    cat("\\renewcommand{\\IsAre}{are}\n", file = out_file)
+  } else {
+    cat("\\renewcommand{\\IsAre}{is}\n", file = out_file)
   }
-  else
-    cat("\\renewcommand{\\IsAre}{is}\n", file=out.file)
 
+  cat("\\renewcommand{\\NumCalibrators}{", file = out_file)
 
-  cat("\\renewcommand{\\NumCalibrators}{", file=out.file)
-  if ("Calibrator" %in% names(sample.type.table))
-    cat(sprintf("%i}\n", sample.type.table["Calibrator"]), file=out.file)
-  else
-    cat(sprintf("%i}\n", 0), file=out.file)
+  if ( "Calibrator" %in% names(sample_type_table) ) {
+    cat(sprintf("%i}\n", sample_type_table["Calibrator"]), file = out_file)
+  } else {
+    cat(sprintf("%i}\n", 0), file = out_file)
+  }
 
+  cat("\\renewcommand{\\NumBuffers}{", file = out_file)
 
-  cat("\\renewcommand{\\NumBuffers}{", file=out.file)
-  if ("Buffer" %in% names(sample.type.table))
-    cat(sprintf("%i buffer (no protein) control sample%s}\n", sample.type.table["Buffer"], if (sample.type.table["Buffer"] != 1) "s" else ""), file=out.file)
-  else
-    cat(sprintf("0 buffer (no protein) control samples}\n", 0), file=out.file)
+  if ( "Buffer" %in% names(sample_type_table) ) {
+    cat(sprintf("%i buffer (no protein) control sample%s}\n",
+                sample_type_table["Buffer"],
+                ifelse(sample_type_table["Buffer"] != 1, "s", "")),
+        file = out_file)
+  } else {
+    cat("0 buffer (no protein) control samples}\n", file = out_file)
+  }
 
-  cat("\\renewcommand{\\NumQC}{", file=out.file)
-  qcs = grep("QC", names(sample.type.table), value=T)
-  if (length(qcs) > 1)
-    stop(sprintf("Multiple QC sample types: %s", paste(qcs, collapse=",")))
-  else if (length(qcs) == 1)
-    cat(sprintf("%i}\n", sample.type.table[qcs]), file=out.file)
-  else
-    cat(sprintf("%i}\n", 0), file=out.file)
+  cat("\\renewcommand{\\NumQC}{", file = out_file)
 
+  qcs <- grep("QC", names(sample_type_table), value = TRUE)
+
+  if ( length(qcs) > 1L ) {
+    stop(sprintf("Multiple QC sample types: %s", value(qcs)), call. = FALSE)
+  } else if ( length(qcs) == 1L ) {
+    cat(sprintf("%i}\n", sample_type_table[qcs]), file = out_file)
+  } else {
+    cat(sprintf("%i}\n", 0), file = out_file)
+  }
 }
 
 
+create_hyb_norm_data <- function(adat, fig_scale, fig_width,
+                                 jitter_x, use_log_scale) {
 
+  SomaPlotr::figure("plots/hyb-norm.pdf", 4.4, 5 * fig_width, scale = fig_scale)
+  on.exit(SomaPlotr::close_figure("plots/hyb-norm.pdf"))
+  par(mar = c(3.2, 4, 3, 2))
+  tab <- plot_scale_factors(adat, hyb = TRUE, scale = fig_scale,
+                            as_boxplot = TRUE, jitter_x = jitter_x,
+                            use_log_scale = use_log_scale)
+  write_latex(tab, row.names = "Run", file = "tables/hyb-norm.tex")
 
+  hyb_fails <- adat[abs(log(adat$HybControlNormScale, base = 2)) > log(2.5, base = 2), ]
 
-create.hyb.norm.data <- function(adat, fig.scale, fig.width, jitter.x, use.log.scale) {
-  figure("plots/hyb-norm.pdf", 4.4, 5*fig.width, scale=fig.scale)
-  par(mar=c(3.2, 4, 3, 2))
-  tab <- plot.scale.factors(adat, hyb=TRUE, scale=fig.scale, as.boxplot=T, jitter.x=jitter.x, use.log.scale=use.log.scale)
-  close_figure("plots/hyb-norm.pdf")
-  write.latex(tab, row.names="Run", file='tables/hyb-norm.tex')
+  were_was <- ifelse(nrow(hyb_fails) == 1L, "was", "were")
+  plural   <- ifelse(nrow(hyb_fails) == 1L, "", "s")
 
-  hyb.fails <- adat[abs(log(adat$HybControlNormScale, base=2)) > log(2.5, base=2),]
+  cat(sprintf("\\renewcommand{\\NumHybFail}{%s %i sample%s}\n",
+              were_was, nrow(hyb_fails), plural),
+      file = "sqs-data.tex", append = TRUE)
 
-  if (nrow(hyb.fails) == 1) {
-    were.was = "was"
-    plural = ""
+  if ( nrow(hyb_fails) > 0L ) {
+    cat(sprintf("\\HybFailstrue\n"), file = "sqs-data.tex", append = TRUE)
+    temp_hyb_fails <- hyb_fails
+    row.names(temp_hyb_fails) <- temp_hyb_fails$ExtIdentifier
+    write_latex(temp_hyb_fails[, c("PlateId", "SampleId", "HybControlNormScale")],
+                file = "tables/hyb-fail.tex", row.names = "ExtIdentifier")
+  } else {
+    cat(sprintf("\\HybFailsfalse\n"), file = "sqs-data.tex", append = TRUE)
   }
-  else {
-    were.was = "were"
-    plural = "s"
-  }
 
-  cat(sprintf("\\renewcommand{\\NumHybFail}{%s %i sample%s}\n", were.was, nrow(hyb.fails), plural), file="sqs-data.tex", append=TRUE)
-  #cat(sprintf("\\renewcommand{\\NumHybFail}{%i}\n", nrow(hyb.fails)), file="sqs-data.tex", append=TRUE)
-
-  if (nrow(hyb.fails) > 0L) {
-    cat(sprintf("\\HybFailstrue\n"), file="sqs-data.tex", append=TRUE)
-    temp.hyb.fails = hyb.fails
-    row.names(temp.hyb.fails) = temp.hyb.fails$ExtIdentifier
-    write.latex(temp.hyb.fails[,c("PlateId", "SampleId", "HybControlNormScale")], file='tables/hyb-fail.tex', row.names="ExtIdentifier")
-  }
-  else
-    cat(sprintf("\\HybFailsfalse\n"), file="sqs-data.tex", append=T)
-
-  list(hyb.fails=hyb.fails)
+  list(hyb_fails = hyb_fails)
 }
 
 
-create.saturation.data <- function(adat, threshold) {
+create_saturation_data <- function(adat, threshold) {
 
-  # keep only SOMAmers in the premium menu
-  seq.ids <- SSmenu.df$SeqId[SSmenu.df$Premium == "Y"]
-  apts <- match.seq.ids(seq.ids, names(adat), order.by.first=FALSE)
-  nadat <- adat[, c(get.meta(adat), apts)]      # subset only premium menu
-
-  # recreate hyb normalized (only) data
-  #  **** FUTURE ITERATIONS WILL PROVIDE THE HYB DATA DIRECTLY ****
+  # keep only analytes from premium menu
+  seq_ids <- SSmenu.df$SeqId[SSmenu.df$Premium == "Y"]
+  apts  <- SomaDataIO::matchSeqIds(seq_ids, names(adat), order.by.first = FALSE)
+  nadat <- adat[, c(SomaDataIO::getMeta(adat), apts)]  # subset only premium menu
 
   # undo calibration first
-  aptdata <- get.apt.data(adat)
-  aptdata <- aptdata[ apts, ]        # subset for 1129
-  calname <- grep("^Cal", names(aptdata), value=TRUE)
+  aptdata <- SomaDataIO::getAnalyteInfo(adat)
+  aptdata <- aptdata[apts, ] # subset for 1129
+  calname <- grep("^Cal", names(aptdata), value = TRUE)
 
-  if (length(calname) > 0) {
-    cat(sprintf("  Undoing calibration with factors from %s\n",calname[1]))
-    aptnames <- get.aptamers(adat)
-    for (i in aptnames)
-      nadat[,i] <- adat[,i] / as.numeric(aptdata[calname[1]][i,1])
+  if ( length(calname) > 0L ) {
+    cat(sprintf("  Undoing calibration with factors from %s\n", calname[1L]))
+    aptnames <- SomaDataIO::getAnalytes(adat)
+    for ( i in aptnames ) {
+      nadat[, i] <- adat[, i] / as.numeric(aptdata[calname[1L]][i, 1L])
+    }
   }
 
   # undo median normalization
   # get normalization factor colnames
-  scales <- sort(grep("^NormScale", get.meta(adat), val=TRUE))   # typically 1 dil for cell lysate
+  # typically 1 dil = lysate
+  scales <- sort(grep("^NormScale", SomaDataIO::getMeta(adat), value = TRUE))
 
   # get a list of aptamers by dilutions
-  by.dil <- split(apts, aptdata$Dilution)                # same order as above due to sorting
+  by_dil <- split(apts, aptdata$Dilution)  # same order as above due to sorting
 
-  if (length(scales) > 0) {
-    cat("  Undoing med norm (by dil)\n")
-    for (i in 1:length(by.dil))
-      nadat[,by.dil[[i]]] <- nadat[,by.dil[[i]]] / nadat[,scales[i]]
+  if ( length(scales) > 0L ) {
+    signal_info("Undoing med norm (by dil)")
+    for ( i in seq_along(by_dil) ) {
+      nadat[, by_dil[[i]]] <- nadat[, by_dil[[i]]] / nadat[, scales[i]]
+    }
   }
 
-  # finally, we can seek those SOMAmers for which *all* measures are above threshold
-  apt.mins <- apply(nadat[,apts], 2, min)
-  saturated <- names(apt.mins)[apt.mins > threshold]
-  #print(saturated)
+  # finally, we can seek those analytes for which
+  # *all* measures are above threshold
+  apt_mins <- apply(nadat[, apts], 2, min)
+  saturated <- names(apt_mins)[apt_mins > threshold]
 
   # write out variables
-  if (length(saturated) > 0) {
-    cat(sprintf("\\Saturationtrue\n"), file="sqs-data.tex", append=TRUE)
-    if (length(saturated)>1)
-      cat(sprintf("\\renewcommand{\\NumSaturation}{were %i SOMAmers}\n", length(saturated)), file="sqs-data.tex", append=TRUE)
-    else
-      cat("\\renewcommand{\\NumSaturation}{was 1 SOMAmer}\n", file="sqs-data.tex", append=TRUE)
+  if ( length(saturated) > 0L ) {
+    cat(sprintf("\\Saturationtrue\n"), file = "sqs-data.tex", append = TRUE)
+    if ( length(saturated) > 1L ) {
+      cat(sprintf("\\renewcommand{\\NumSaturation}{were %i SOMAmers}\n",
+                  length(saturated)), file = "sqs-data.tex", append = TRUE)
+    } else {
+      cat("\\renewcommand{\\NumSaturation}{was 1 SOMAmer}\n",
+          file = "sqs-data.tex", append = TRUE)
+    }
 
     # write out table
-    tabledata <- aptdata[saturated,c("SomaId", "Target", "UniProt", "EntrezGeneSymbol")]
+    tbldata <- aptdata[saturated, c("SomaId", "Target", "UniProt", "EntrezGeneSymbol")]
     # some UniProts are comma separated lists, much better to have spaces
-    tabledata$UniProt <- gsub(","," ",tabledata$UniProt)
+    tbldata$UniProt <- gsub(",", " ", tbldata$UniProt)
+
     # add the minimum RFU values
-    min_rfu  <- as.matrix(apply(nadat[,saturated],2,min))
+    min_rfu  <- as.matrix(apply(nadat[, saturated], 2, min))
     colnames(min_rfu) <- "Minimum RFU"
-    tabledata <- cbind(tabledata, min_rfu)
-    write.latex(tabledata, file="tables/saturation.tex", write.rownames=FALSE)
-  } else
-    cat(sprintf("\\Saturationfalse\n"), file="sqs-data.tex", append=TRUE)
+    tbldata <- cbind(tbldata, min_rfu)
+    write_latex(tbldata, file = "tables/saturation.tex", write.rownames = FALSE)
+  } else {
+    cat(sprintf("\\Saturationfalse\n"), file = "sqs-data.tex", append = TRUE)
+  }
 }
 
 
-create.med.norm.data <- function(adat, fig.scale, legend.scale, fig.width, jitter.x, use.log.scale) {
-  med.names <- grep("^NormScale", names(adat), value=T)
-  if (length(med.names) == 0)
+create_med_norm_data <- function(adat, fig_scale, legend_scale,
+                                 fig_width, jitter_x, use_log_scale) {
+
+  med_names <- grep("^NormScale", names(adat), value = TRUE)
+
+  if ( length(med_names) == 0L ) {
     stop("No Med Norm Scale factors found")
-  figure("plots/med-norm.pdf", 5, 5*fig.width, scale=fig.scale)
-  tab <- plot.scale.factors(adat, hyb=FALSE, as.boxplot=TRUE, scale=fig.scale, legend.cex=legend.scale, jitter.x=jitter.x, use.log.scale=use.log.scale)
-  close_figure("plots/med-norm.pdf")
-  write.latex(tab, row.names="Run: Dilution", file='tables/med-norm.tex')
-
-  med.fails <- adat[,c("SampleId", med.names)]
-
-  if (any(is.na(adat$ExtIdentifier))) {
-    row.names(med.fails) = 1:nrow(med.fails)
-    rn.name = ""
-  }
-  else {
-    if ( any(table(adat$ExtIdentifier) > 1) )      # if duplicates; can't assign rownames
-      row.names(med.fails) = as.character(adat$SampleId)
-    else
-      row.names(med.fails) = as.character(adat$ExtIdentifier)
-    rn.name = "ExtIdentifier"
   }
 
-  med.fails[,2:ncol(med.fails)] <- apply(as.data.frame(med.fails[,2:ncol(med.fails)]), 2, function(scale.factors){
-    #c("", "X")[1+as.numeric(abs(log(scale.factors, base=2)) > log(2.5, base=2))]
-    if (use.log.scale) {
-      scale.factors.str = sprintf("%0.3f", log(scale.factors, base=2))
+  SomaPlotr::figure("plots/med-norm.pdf", 5, 5 * fig_width, scale = fig_scale)
+  on.exit(SomaPlotr::close_figure("plots/med-norm.pdf"))
+  tab <- plot_scale_factors(adat, hyb = FALSE, as.boxplot = TRUE,
+                            scale = fig_scale, legend.cex = legend_scale,
+                            jitter.x = jitter_x, use_log_scale = use_log_scale)
+  write_latex(tab, row.names = "Run: Dilution", file = "tables/med-norm.tex")
+
+  med_fails <- adat[, c("SampleId", med_names)]
+
+  if ( any(is.na(adat$ExtIdentifier)) ) {
+    row.names(med_fails) <- seq_len(nrow(med_fails))
+    rn_name <- ""
+  } else {
+    if ( any(table(adat$ExtIdentifier) > 1L) ) { # if duplicates can't assign rn
+      row.names(med_fails) <- as.character(adat$SampleId)
     } else {
-      scale.factors.str = sprintf("%0.3f", scale.factors)
+      row.names(med_fails) <- as.character(adat$ExtIdentifier)
     }
-    scale.factors.str[abs(log(scale.factors, base=2)) < log(2.5, base=2)] = ""
-    scale.factors.str
+    rn_name <- "ExtIdentifier"
+  }
+
+  med_fails[, 2:ncol(med_fails)] <- apply(as.data.frame(med_fails[, 2:ncol(med_fails)]),
+                                          2, function(sf) {
+            if ( use_log_scale ) {
+              scale_factors_str <- sprintf("%0.3f", log(sf, base = 2))
+            } else {
+              scale_factors_str <- sprintf("%0.3f", sf)
+            }
+            scale_factors_str[abs(log(sf, base = 2)) < log(2.5, base = 2)] <- ""
+            scale_factors_str
   })
 
-  med.fails <- as.data.frame(med.fails)  # added sgf
-  med.fails <- med.fails[ apply(med.fails[,2:ncol(med.fails)], 1, function(row) any(row != "")), ]
+  med_fails <- as.data.frame(med_fails)  # added sgf
+  med_fails <- med_fails[apply(med_fails[, 2:ncol(med_fails)], 1,
+                               function(row) any(row != "")), ]
 
-  if (nrow(med.fails) == 1) {
-    were.was = "was"
-    plural = ""
+  were_was <- ifelse(nrow(med_fails) == 1L, "was", "were")
+  plural   <- ifelse(nrow(med_fails) == 1L, "", "s")
+
+  cat(sprintf("\\renewcommand{\\NumMedFail}{%s %i sample%s}\n", were_was,
+              nrow(med_fails), plural), file = "sqs-data.tex", append = TRUE)
+  cat(sprintf("\\renewcommand{\\NumMedFails}{%i sample%s}\n", nrow(med_fails),
+              plural), file = "sqs-data.tex", append = TRUE)
+
+  med_fails <- med_fails[order(med_fails$SampleId), ]
+
+  if ( nrow(med_fails) > 0L ) {
+    cat(sprintf("\\MedFailstrue\n"), file = "sqs-data.tex", append = TRUE)
+    names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
+                                                  function(nm) gsub("[.]", " ", nm))
+    names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
+                                                 function(nm) gsub("$", "\\\\%", nm))
+    names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
+                                                 function(nm) gsub(" 005", " 0.005", nm))
+    names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
+                                                 function(nm) gsub(" 05", " 0.05", nm))
+    names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
+                                                 function(nm) gsub("2.5", "2.5", nm))
+    names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
+                                                 function(nm) gsub("^NormScale ", "", nm))
+    names(med_fails)[2:ncol(med_fails)] <- sprintf("%s Dilution",
+                                                   names(med_fails)[2:ncol(med_fails)])
+    med_fails <- med_fails[, c("SampleId", sort(names(med_fails)[2:ncol(med_fails)]))]
+
+    if ( all(rownames(med_fails) == med_fails$SampleId) && ncol(med_fails) > 2L ) {
+       med_fails <- med_fails[, setdiff(names(med_fails), "SampleId")]
+    } else {
+      med_fails <- as.data.frame(med_fails[, -grep("SampleId", names(med_fails))],
+                                 row.names = rownames(med_fails)) |>
+        setNames(setdiff(names(med_fails), "SampleId"))
+    }
+
+    write_latex(med_fails, file = "tables/med_fail.tex", row.names = rn_name)
+
+  } else {
+    cat(sprintf("\\MedFailsfalse\n"), file = "sqs-data.tex", append = TRUE)
   }
-  else {
-    were.was = "were"
-    plural = "s"
-  }
 
-  cat(sprintf("\\renewcommand{\\NumMedFail}{%s %i sample%s}\n", were.was, nrow(med.fails), plural), file="sqs-data.tex", append=T)
-  cat(sprintf("\\renewcommand{\\NumMedFails}{%i sample%s}\n", nrow(med.fails), plural), file="sqs-data.tex", append=TRUE)
-
-  # order med.fails by sampleID (sgf)
-  med.fails <- med.fails[ order(med.fails$SampleId), ]
-
-
-  if ( nrow(med.fails) > 0 ){
-    cat(sprintf("\\MedFailstrue\n"), file="sqs-data.tex", append=TRUE)
-    names(med.fails)[2:ncol(med.fails)] = sapply(names(med.fails)[2:ncol(med.fails)], function(name) gsub("[.]", " ", name))
-    names(med.fails)[2:ncol(med.fails)] = sapply(names(med.fails)[2:ncol(med.fails)], function(name) gsub("$", "\\\\%", name))
-    names(med.fails)[2:ncol(med.fails)] = sapply(names(med.fails)[2:ncol(med.fails)], function(name) gsub(" 005", " 0.005", name))
-    names(med.fails)[2:ncol(med.fails)] = sapply(names(med.fails)[2:ncol(med.fails)], function(name) gsub(" 05", " 0.05", name))
-    names(med.fails)[2:ncol(med.fails)] = sapply(names(med.fails)[2:ncol(med.fails)], function(name) gsub("2.5", "2.5", name))
-    names(med.fails)[2:ncol(med.fails)] = sapply(names(med.fails)[2:ncol(med.fails)], function(name) gsub("^NormScale ", "", name))
-    names(med.fails)[2:ncol(med.fails)] = sprintf("%s Dilution", names(med.fails)[2:ncol(med.fails)])
-
-    med.fails = med.fails[,c("SampleId", sort(names(med.fails)[2:ncol(med.fails)]))]   # reorder columns of dilutions: sgf
-
-    if ( all(rn(med.fails) == med.fails$SampleId) && ncol(med.fails) > 2 )   # added sgf
-       med.fails = med.fails[, setdiff(names(med.fails), "SampleId")]
-    else   # added sgf
-      med.fails = as.data.frame(med.fails[, -grep("SampleId", names(med.fails))], row.names=rn(med.fails)) %names% setdiff(names(med.fails), "SampleId")
-
-    write.latex(med.fails, file="tables/med_fail.tex", row.names=rn.name)
-
-  }
-  else
-    cat(sprintf("\\MedFailsfalse\n"), file="sqs-data.tex", append=T)
-
-  list(med.fails=med.fails)
+  list(med_fails = med_fails)
 
 }
 
 
-create.cal.sop.data <- function(adat, template.pairs, fig.scale, legend.scale) {
+create_cal_sop_data <- function(adat, template_pairs, fig_scale, legend_scale) {
 
-  seq.id.matches <- get.seq.ids.matches(get.aptamers(adat), template.pairs[['apts']])
-  apts <- seq.id.matches[,1]
-  adat2 <- adat[,c(get.meta(adat), apts)]
-  apt.data <- get.apt.data(adat)
-  apt.data <- apt.data[apts,]
+  seqid_matches <- SomaDataIO::getSeqIdMatches(SomaDataIO::getAnalytes(adat),
+                                               template_pairs$apts)
+  apts  <- seqid_matches[, 1L]
+  adat2 <- adat[, c(SomaDataIO::getMeta(adat), apts)]
+  apt_data <- SomaDataIO::getAnalyteInfo(adat)
+  apt_data <- apt_data[apts, ]
 
-  figure("plots/cal-sop.pdf", 2.9*1.6, 5.8*1.6, scale=fig.scale)
-  sop.data <- sop.calibration(adat2, apt.data=apt.data, legend.cex=legend.scale)
-  close_figure("plots/cal-sop.pdf")
-  tail.apts <- unique(unlist(sop.data$tail.fails))
-  new.rn <- sapply(row.names(sop.data$cal.table), function(name) {
-        q=0
-        q = regexpr("Set.[A-Z]", name)
-        if (length(q[[1]]) != 1 )
-            name
-        else
-            gsub("[_.]", " ", substr(name, q, attributes(q)$match.length+q-1))
-      })
+  SomaPlotr::figure("plots/cal-sop.pdf", 2.9 * 1.6, 5.8 * 1.6, scale = fig_scale)
+  sop_data <- sop.calibration(adat2, apt.data = apt_data, legend.cex = legend_scale)
+  on.exit(SomaPlotr::close_figure("plots/cal-sop.pdf"))
+  tail_apts <- unique(unlist(sop_data$tail_fails))
+  new_rn <- vapply(row.names(sop_data$cal_table), function(name) {
+    q <- 0
+    q <- regexpr("Set.[A-Z]", name)
+    if ( length(q[[1L]]) != 1L ) {
+      name
+    } else {
+      gsub("[_.]", " ", substr(name, q, attributes(q)$match.length + q - 1))
+    }
+  }, "")
 
-  row.names(sop.data$cal.table) = new.rn
+  sop_data$cal_table <- set_rn(sop_data$cal_table, new_rn)
 
-  tail.data <- apt.data[tail.apts,c("SomaId", "Target", "UniProt", "EntrezGeneSymbol")]
-  row.names(tail.data) <- tail.data$SomaId
-  tail.data <- tail.data[,setdiff(names(tail.data), "SomaId")]
+  tail_data <- apt_data[tail_apts, c("SomaId", "Target", "UniProt", "EntrezGeneSymbol")]
+  tail_data <- set_rn(tail_data, tail_data$SomaId)
+  tail_data <- tail_data[, setdiff(names(tail_data), "SomaId")]
 
-  write.latex(sop.data$cal.table, file='tables/cal-sop.tex', row.names="Run")
-  write.latex(tail.data, file='tables/tail-apts.tex', row.names="SomaId")
-  if (nrow(tail.data) == 1) {
-    were.was = "was"
-    plural = ""
+  write_latex(sop_data$cal_table, file = "tables/cal-sop.tex", row.names = "Run")
+  write_latex(tail_data, file = "tables/tail-apts.tex", row.names = "SomaId")
+  were_was <- ifelse(nrow(tail_data) == 1L, "was", "were")
+  plural   <- ifelse(nrow(tail_data) == 1L, "", "s")
+
+  cat(sprintf("\\renewcommand{\\NumCalFail}{%s %i analyte%s}\n",
+              were_was, nrow(tail_data), plural),
+      file = "sqs-data.tex", append = TRUE)
+  if ( nrow(tail_data) > 0L ) {
+    cat(sprintf("\\CalFailstrue\n"), file = "sqs-data.tex", append = TRUE)
   }
-  else {
-    were.was = "were"
-    plural = "s"
-  }
-
-  cat(sprintf("\\renewcommand{\\NumCalFail}{%s %i analyte%s}\n", were.was, nrow(tail.data), plural), file='sqs-data.tex', append=T)
-  if (nrow(tail.data) > 0)
-    cat(sprintf("\\CalFailstrue\n"), file="sqs-data.tex", append=T)
 }
 
 
-sample.notes.table <- function(adat){
+sample_notes_table <- function(adat) {
 
-  if (all(is.na(adat$SampleNotes))) {
-    cat("\\showSampleNotesfalse", file="sqs-data.tex", append=T)
+  if ( all(is.na(adat$SampleNotes)) ) {
+    cat("\\showSampleNotesfalse", file = "sqs-data.tex", append = TRUE)
     return()
   }
 
@@ -464,37 +497,45 @@ sample.notes.table <- function(adat){
 
   if ( nrow(tab) > 0L ) {
     tab <- tab[order(tab$SampleId), ]
-    row.names(tab) = 1:nrow(tab)
+    row.names(tab) <- seq_len(nrow(tab))
 
     if ( all(as.character(tab$ExtIdentifier) == as.character(tab$SampleId)) ) {
       tab <- tab[, -2L]
     }
 
-    names(tab)[names(tab) == "SampleNotes"] = "SampleAppearance"
-    write.latex(tab, row.names="", file='tables/sample-notes.tex')
-    cat("\\showSampleNotestrue", file="sqs-data.tex", append=T)
+    names(tab)[names(tab) == "SampleNotes"] <- "SampleAppearance"
+    write_latex(tab, row.names = "", file = "tables/sample-notes.tex")
+    cat("\\showSampleNotestrue", file = "sqs-data.tex", append = TRUE)
   } else {
-    cat("\\showSampleNotesfalse", file="sqs-data.tex", append=T)
+    cat("\\showSampleNotesfalse", file = "sqs-data.tex", append = TRUE)
   }
 }
 
 
-norm.scale.factors <- function(adat, group, filename=NULL) {
-  if (all(group %in% names(adat)))
-    group <- do.call(paste, as.list(adat[,group]))
-  else if (length(group) != nrow(adat))
-    stop("Bad group")
-  #med.sfs = grep("^NormScale", names(adat))
-  figure(filename, 3, 9)
-  par(mfrow=c(1,3))
-  par(par.def)
-  boxplot(split(log2(adat$NormScale.005), group), main="Median Normalization: 0.005%",
-        ylab=expression(log[2](Normalization~Scale~Factor)), xlab="Study", ylim=ylim)
-  boxplot(split(log2(adat$NormScale.1), group), main="Median Normalization: 1%",
-        ylab=expression(log[2](Normalization~Scale~Factor)), xlab="Study", ylim=ylim)
-  boxplot(split(log(adat$NormScale.40), group), main="Median Normalization: 40%",
-        ylab=expression(log[2](Normalization~Scale~Factor)), xlab="Study", ylim=ylim)
-  close_figure(filename)
+norm_scale_factors <- function(adat, group, file = NULL) {
+
+  pars <- c(par_def, mfrow = c(1L, 3L))
+  withr::local_par(list(pars))
+
+  if ( all(group %in% names(adat)) ) {
+    group <- do.call(paste, as.list(adat[, group]))
+  } else if ( length(group) != nrow(adat) ) {
+    stop("Bad group", call. = FALSE)
+  }
+
+  SomaPlotr::figure(file, 3, 9)
+  on.exit(SomaPlotr::close_figure(file))
+
+  boxplot(split(log2(adat$NormScale.005), group),
+          main = "Median Normalization: 0.005%",
+          ylab = expression(log[2](Normalization ~ Scale ~ Factor)),
+          xlab = "Study", ylim = ylim)
+  boxplot(split(log2(adat$NormScale.1), group),
+          main = "Median Normalization: 1%",
+          ylab = expression(log[2](Normalization ~ Scale ~ Factor)),
+          xlab = "Study", ylim = ylim)
+  boxplot(split(log(adat$NormScale.40), group),
+          main = "Median Normalization: 40%",
+          ylab = expression(log[2](Normalization ~ Scale ~ Factor)),
+          xlab = "Study", ylim = ylim)
 }
-
-
