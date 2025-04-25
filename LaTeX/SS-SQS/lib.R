@@ -40,12 +40,12 @@ sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
 
   if ( !"Adat" %in% names(template_pairs) ) {
     stop("Adat missing from `sqs-data.txt`", call. = FALSE)
-  } else if ( template_pairs[["Adat"]] == "NULL" ) {
-    stop("You forgot to enter an ADAT file path", call. = FALSE)
+  } else if ( template_pairs$Adat == "NULL" ) {
+    stop("You forgot to enter an ADAT file path!", call. = FALSE)
   }
 
   signal_info("Loading adat ...")
-  adat <- SomaDataIO::read_adat(template_pairs[["Adat"]])
+  adat <- SomaDataIO::read_adat(template_pairs$Adat)
   sample_type_table <- table(adat$SampleType)
   adat <- dplyr::filter(adat, SampleType == "Sample")
   template_pairs$apts <- SomaDataIO::match_seqIds(template_pairs$apts, names(adat))
@@ -133,7 +133,8 @@ parse_template_pairs <- function() {
     if ( template_pairs$AptMenu %in% c("Premium", "450-plex") ) {
       column <- c(Premium = "Premium", "450-plex" = "On450")
       column <- column[template_pairs$AptMenu]
-      apts <- SSmenu.df[SSmenu.df[, column] == "Y", ]$SeqId
+      ss_menu <- readRDS("SSmenu.rds")
+      apts <- ss_menu[[column]]
       template_pairs$apts <- apts
     } else {
       stop("`AptMenu` must be either Premium or 450-plex. ",
@@ -279,8 +280,9 @@ create_hyb_norm_data <- function(adat, fig_scale, fig_width,
 create_saturation_data <- function(adat, threshold) {
 
   # keep only analytes from premium menu
-  seq_ids <- SSmenu.df$SeqId[SSmenu.df$Premium == "Y"]
-  apts  <- SomaDataIO::matchSeqIds(seq_ids, names(adat), order.by.first = FALSE)
+  ss_menu <- readRDS("SSmenu.rds")
+  seq_ids <- ss_menu$Premium
+  apts  <- SomaDataIO::matchSeqIds(seq_ids, names(adat), order.by.x = FALSE)
   nadat <- adat[, c(SomaDataIO::getMeta(adat), apts)]  # subset only premium menu
 
   # undo calibration first
@@ -445,7 +447,7 @@ create_cal_sop_data <- function(adat, template_pairs, fig_scale, legend_scale) {
   apt_data <- apt_data[apts, ]
 
   SomaPlotr::figure("plots/cal-sop.pdf", 2.9 * 1.6, 5.8 * 1.6, scale = fig_scale)
-  sop_data <- sop.calibration(adat2, apt.data = apt_data, legend.cex = legend_scale)
+  sop_data <- sop_calibration(adat2, apt.data = apt_data, legend.cex = legend_scale)
   on.exit(SomaPlotr::close_figure("plots/cal-sop.pdf"))
   tail_apts <- unique(unlist(sop_data$tail_fails))
   new_rn <- vapply(row.names(sop_data$cal_table), function(name) {
@@ -555,24 +557,22 @@ write_latex <- function(data, file, row_names = "Feature",
       file = file, append = append)
 
   if ( !is.null(caption) ) {
-    cat(
-      sprintf("\\multicolumn{%i}{c}\n{\\small \\textbf{\\tablename\\ \\thetable{} -- %s}} \\\\\n",
-              length(cols), caption),
-        append = TRUE, file = file)
+    sprintf("\\multicolumn{%i}{c}\n{\\small \\textbf{\\tablename\\ \\thetable{} -- %s}} \\\\\n",
+            length(cols), caption) |>
+      cat(append = TRUE, file = file)
   }
 
   cat(header, append = TRUE, file = file)
 
   if ( long ) {
     cat("\\endfirsthead\n\n", append = TRUE, file = file)
-    cat(
-      sprintf("\\multicolumn{%i}{c}\n{{\\tablename\\ \\thetable{} -- continued from previous page}} \\\\\n",
-              length(cols)),
-        append = TRUE, file = file)
+    sprintf("\\multicolumn{%i}{c}\n{{\\tablename\\ \\thetable{} -- continued from previous page}} \\\\\n",
+            length(cols)) |>
+      cat(append = TRUE, file = file)
     cat(header, append = TRUE, file = file)
     cat("\\endhead\n\n", append = TRUE, file = file)
   }
-  for ( i in 1:ncol(data) ) {
+  for ( i in seq_len(ncol(data)) ) {
     if ( is.numeric(data[, i]) ) {
       data[, i] <- format(data[, i], nsmall = 2L, digits = 2L,
                           scientific = abs(min(data[, i])) < 0.01)
@@ -583,3 +583,11 @@ write_latex <- function(data, file, row_names = "Feature",
               col.names = FALSE, row.names = TRUE, eol = "\\\\\n", ...)
   cat(sprintf("\\hline\n\\end{%s}\n", table), append = TRUE, file = file)
 }
+
+
+par_def <- list(mgp = c(2.00, 0.75, 0.00), mar = c(3L, 4L, 3L, 1L))
+
+
+col_string <- c("steelblue", "red", "darkgreen", "darkorchid4",
+                "cyan", "orange", "black", "grey", "#990066", "green",
+                "#24135F")
