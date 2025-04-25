@@ -532,3 +532,54 @@ norm_scale_factors <- function(adat, group, file = NULL) {
           ylab = expression(log[2](Normalization ~ Scale ~ Factor)),
           xlab = "Study", ylim = ylim)
 }
+
+
+write_latex <- function(data, file, row_names = "Feature",
+                        append = FALSE, long = FALSE,
+                        caption = NULL, ...) {
+  if ( long ) {
+    table <- "longtable"
+  } else {
+    table <- "tabular"
+  }
+
+  cols <- c("l", rep("r", ncol(data)))
+
+  data <- data |>
+    set_rn(sub("_", "\\_", rownames(mtcars), fixed = TRUE))
+
+  header <- sprintf("\\hline\n\\textbf{%s} & \\textbf{%s} \\\\\n\\hline\n",
+                    row_names, paste(colnames(data), collapse = "} & \\textbf{"))
+
+  cat(sprintf("\\begin{%s}{", table), cols, "}\n", sep = "",
+      file = file, append = append)
+
+  if ( !is.null(caption) ) {
+    cat(
+      sprintf("\\multicolumn{%i}{c}\n{\\small \\textbf{\\tablename\\ \\thetable{} -- %s}} \\\\\n",
+              length(cols), caption),
+        append = TRUE, file = file)
+  }
+
+  cat(header, append = TRUE, file = file)
+
+  if ( long ) {
+    cat("\\endfirsthead\n\n", append = TRUE, file = file)
+    cat(
+      sprintf("\\multicolumn{%i}{c}\n{{\\tablename\\ \\thetable{} -- continued from previous page}} \\\\\n",
+              length(cols)),
+        append = TRUE, file = file)
+    cat(header, append = TRUE, file = file)
+    cat("\\endhead\n\n", append = TRUE, file = file)
+  }
+  for ( i in 1:ncol(data) ) {
+    if ( is.numeric(data[, i]) ) {
+      data[, i] <- format(data[, i], nsmall = 2L, digits = 2L,
+                          scientific = abs(min(data[, i])) < 0.01)
+    }
+  }
+  write.table(data, file = file, sep = " & ",
+              quote = FALSE, append = TRUE,
+              col.names = FALSE, row.names = TRUE, eol = "\\\\\n", ...)
+  cat(sprintf("\\hline\n\\end{%s}\n", table), append = TRUE, file = file)
+}
