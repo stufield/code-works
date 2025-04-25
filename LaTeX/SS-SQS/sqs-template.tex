@@ -20,15 +20,15 @@
 \includeCalSoptrue      % If no, comment
 
 \newif\ifshowSampleNotes  % Show sample notes table? 
-                % This is automatically set by sqs_data.tex
+                % This is automatically set by `sqs-data.tex`
                 % To over-ride place one of these two flags below by uncommenting.
-                % Must be put below \input{sqs_data.tex} in next section
+                % Must be put below \input{sqs-data.tex} in next section
 %\showSampleNotestrue     % set to true
 %\showSampleNotesfalse    % set to false
 \newif\ifuseLogScale  % use log scale for the normalization/calibration factors?
-            % Set by sqs_data.tex, can override by placing one of the next two lines after \input{sqs_data.tex}, but
-            % note that the plots whould be changed accordingly. The R command sqs.wrapper(use.log.scale=T|F) both
-            % writes out the correct flag to \input{sqs_data.tex} and generates the corresponding plots
+            % Set by sqs-data.tex, can override by placing one of the next two lines after \input{sqs-data.tex}, but
+            % note that the plots whould be changed accordingly. The R command `sqs_wrapper(use_log_scale = T|F)` both
+            % writes out the correct flag to \input{sqs-data.tex} and generates the corresponding plots
 %\useLogScaletrue
 %\useLogScalefalse
 
@@ -250,7 +250,7 @@ Figure~\ref{fig:hyb_cdf} and summarized in Table~\ref{tab:hyb}.
 % Fig 1
 \begin{figure}[H]
   \centering
-  \includegraphics[height=.5\textwidth]{plots/hyb_norm.pdf}
+  \includegraphics[height=.5\textwidth]{plots/hyb-norm.pdf}
   \caption{Boxplot of the hybridization scale factors \hl{grouped by run}. The
     acceptance criteria for scale factors are indicated with dashed lines.}
   \label{fig:hyb_cdf}
@@ -262,7 +262,7 @@ Figure~\ref{fig:hyb_cdf} and summarized in Table~\ref{tab:hyb}.
 
 \begin{table}[ht]
   \begin{center}
-    \input{tables/hyb_norm.tex}
+    \input{tables/hyb-norm.tex}
     \ifuseLogScale
       \caption{Summary of log$_2$ hybridization scale factor distribution\Plural.}
     \else 
@@ -290,7 +290,7 @@ acceptable range.
 \ifHybFails
 \begin{table}[ht]
   \begin{center}
-    \input{tables/hyb_fail.tex}
+    \input{tables/hyb-fail.tex}
     \caption{Samples that failed the hybridization normalization acceptance
       criteria.}
     \label{tab:hybFail}
@@ -340,7 +340,7 @@ group, across groups, etc}.
 % Fig 2
 \begin{figure}[H]
   \centering
-  \includegraphics[height=.5\textwidth]{plots/med_norm.pdf}
+  \includegraphics[height=.5\textwidth]{plots/med-norm.pdf}
   \caption{Boxplot of the median normalization scale factors by set and
     dilution. The acceptance criteria for scale factors are indicated with dashed
     lines.}
@@ -350,7 +350,7 @@ group, across groups, etc}.
 
 \begin{table}[ht!]
   \begin{center}
-    \input{tables/med_norm.tex}
+    \input{tables/med-norm.tex}
     \ifuseLogScale
       \caption{Summary of log$_2$ median normalization scale factor distributions.}
     \else 
@@ -411,7 +411,7 @@ summarized in Table~\ref{tab:calSOP}.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=.9\textwidth]{plots/cal_sop.pdf}
+  \includegraphics[width=.9\textwidth]{plots/cal-sop.pdf}
   \caption{Distribution of the calibration scale factors \hl{grouped by run}.
     The median of each calibration scale factor distribution must be between 0.8
     and 1.2 (left panel). Additionally, 95\% of the scale factors for each
@@ -424,7 +424,7 @@ summarized in Table~\ref{tab:calSOP}.
 
 \begin{table}[ht!]
   \begin{center}
-    \input{tables/cal_sop.tex}
+    \input{tables/cal-sop.tex}
     \caption{Summary of the calibration scale factor distribution\Plural.}
     \label{tab:calSOP}
   \end{center}
@@ -451,7 +451,7 @@ with caution.  Sensitivity analysis is recommended.
   \begin{table}[ht!]
     \begin{center}
       %\tiny
-      \input{tables/tail_apts.tex}
+      \input{tables/tail-apts.tex}
       \caption{Analytes with calibration scale factors in the tails of the
         distribution\Plural.}
       \label{tab:caltail}
@@ -495,7 +495,7 @@ treat these samples with caution, sensitivity analysis is recommended.
 
 \begin{table}[ht]
   \begin{center}
-    \input{tables/sample_notes.tex}
+    \input{tables/sample-notes.tex}
     \caption{Sample appearance notes at the time of assay execution.}
     \label{tab:sampleNotes}
   \end{center}
