@@ -1,0 +1,515 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx, color}
+\usepackage{framed}
+\usepackage{alltt}
+\usepackage{array, bm, geometry, epsfig, marvosym, amssymb, amsmath, paralist}
+\usepackage{float, graphics, wrapfig, rotating, multienum, enumerate, afterpage}
+\usepackage{amsthm, hyperref, setspace, color, fancyhdr, multirow, hanging}
+\usepackage{sectsty, eurosym, xr, url, longtable, xcolor, soul, verbatim}
+\geometry{left=0.75in, bottom=1in, right=0.75in, top=1.5in, foot=0.5in, head=1in}
+\parindent = 0.5cm
+
+
+% ------------------
+% Auto-SQS Flags
+% ------------------
+\newif\ifcalibrated   % Was data calibrated?
+\calibratedtrue       % If no, comment
+
+\newif\ifincludeCalSop  % Include calibration SOP section
+\includeCalSoptrue      % If no, comment
+
+\newif\ifshowSampleNotes  % Show sample notes table? 
+                % This is automatically set by sqs_data.tex
+                % To over-ride place one of these two flags below by uncommenting.
+                % Must be put below \input{sqs_data.tex} in next section
+%\showSampleNotestrue     % set to true
+%\showSampleNotesfalse    % set to false
+\newif\ifuseLogScale  % use log scale for the normalization/calibration factors?
+            % Set by sqs_data.tex, can override by placing one of the next two lines after \input{sqs_data.tex}, but
+            % note that the plots whould be changed accordingly. The R command sqs.wrapper(use.log.scale=T|F) both
+            % writes out the correct flag to \input{sqs_data.tex} and generates the corresponding plots
+%\useLogScaletrue
+%\useLogScalefalse
+
+
+\newif\ifHybFails      % Hyb failures?
+\newif\ifSaturation    % did any analytes have all measurmentes > saturation threshold (80000 RFU)?
+\newif\ifMedFails      % Med failures?
+\newif\ifCalFails      % Cal failures?
+
+
+% ------------------------
+% Auto-SQS Commands
+% ------------------------
+
+% Header stuff
+\newcommand{\ClientName}{Client Name}    % Company/client name
+\newcommand{\SponsorName}{}              
+
+% Adat Counts
+\newcommand{\NumSamples}{\hl{XX}}
+\newcommand{\NumPlates}{\hl{X} }
+\newcommand{\NumCalibrators}{\hl{X} }
+\newcommand{\NumBuffers}{\hl{X}}              
+\newcommand{\NumQC}{\hl{X}}              
+\newcommand{\NumApts}{\hl{XX} }                              % 1129, 1128 (serum), or 450
+
+% Adat Data
+\newcommand{\AptMenu}{}                    % Premium, 450plex
+\newcommand{\MatrixName}{\hl{Matrix Name} }                  % plasma, serum, cell culture media
+\newcommand{\Sets}{\hl{Sets}}              % Set A, Set B, Set C, etc.
+\newcommand{\Plural}{}              
+\newcommand{\IsAre}{\hl{are}}              
+
+% Assay QC
+\newcommand{\NumHybFail}{\hl{X}}
+\newcommand{\NumSaturation}{\hl{X}}
+\newcommand{\NumMedFail}{\hl{X}}
+\newcommand{\NumMedFails}{\hl{X}}
+\newcommand{\NumCalFail}{\hl{X}}
+
+\input{sqs-data.tex} % File created by R code
+
+
+% ------------------------
+% Figure Inclusion Macros
+% ------------------------
+% Single Figure:  <filename, caption text, label, size>
+\newcommand{\InsertFig}[4]
+{\begin{figure}[tpH]
+       \centerline{
+         \includegraphics[width=#4]{./figures/#1}
+       }
+       \caption{{\footnotesize  #2}\label{#3}}
+\end{figure}}
+
+
+% 2Up Figure : <filename1, Filename2, caption text, label, size>
+\newcommand{\InsertFigTwo}[5] {
+\begin{figure}[ht]
+       \centerline{
+         \includegraphics[width=#5]{../figures/#1}
+         \hskip 0.25in
+         \includegraphics[width=#5]{../figures/#2}
+       }
+       \caption{{\footnotesize  #3}
+       \label{#4}}
+\end{figure}}
+
+% -------------
+% Definitions
+% -------------
+\definecolor{purple}{RGB}{86,73,99}          % purple
+\definecolor{gray}{RGB}{180,171,168}         % grey
+\newcommand{\purple}[1]{{\color{purple}#1}}  % purple font
+\newcommand{\gray}[1]{{\color{gray}#1}}      % purple font
+\newcommand{\red}[1]{{\color{red}#1}}        % red font
+\newcommand{\blue}[1]{{\color{blue}#1}}      % blue font
+\newcommand{\green}[1]{{\color{green}#1}}    % green font
+
+% define date format
+\def \today{\ifcase\month\or January\or February\or March\or April\or May\or
+            June\or July\or August\or September\or October\or November\or
+            December\fi \space \number\day, \space \number\year}
+
+\def \hzline{\rule[0mm]{\textwidth}{1pt}}
+\def \mytitle{\textbf{SomaScan\texttrademark~Quality Statement}}
+\def \myfoot{\purple{BI-002 v1.1 \textbullet\ \textcopyright 2013 \textbullet\ COMPANY \textbullet\ ADDRESS \textbullet\ CITY, STATE, ZIP}}
+
+
+
+% -------------
+% Header
+% -------------
+\makeatletter
+\fancypagestyle{mypagestyle}{ %
+    \fancyhf{}                                      % Clear header/footer
+    \fancyhead[CO,CE]{\LARGE\purple{\mytitle}}  % header
+    \fancyfoot[LO,LE]{\scriptsize{\myfoot}}         % footer
+    \fancyfoot[RO,RE]{\thepage}                     % Page # in right of footer
+    \renewcommand{\headrulewidth}{6pt}              % 6pt header rule
+    \renewcommand{\footrulewidth}{6pt}              % 6pt header rule
+    %\fancyhead[RO,RE]{\rightmark}                  % sections in header
+    %\fancyhead[LO,LE]{\leftmark}                   % sections in header
+    %\thispagestyle{empty}                          % not for first page
+    % header color
+    \def \headrule{{\if@fancyplain\let\headrulewidth\plainheadrulewidth\fi
+         \color{purple}\hrule\@height\headrulewidth\@width\headwidth \vskip-\headrulewidth}}
+    % footer color
+    \def \footrule{{\if@fancyplain\let\footrulewidth\plainfootrulewidth\fi
+         \vskip-\footruleskip\vskip-\footrulewidth
+         \color{gray}\hrule\@width\headwidth\@height\footrulewidth\vskip\footruleskip}}
+}
+\makeatother
+
+\pagestyle{mypagestyle}
+
+\headsep = 1.00cm            % separation of header and body
+\headheight = 2cm            % header height
+
+% ------------
+% Hypersetup
+% ------------
+\hypersetup{
+  pdftitle = {\mytitle},         % title
+  colorlinks = true,
+  linkcolor = blue,              % crossrefs
+  citecolor = blue,              % citations
+  pdfauthor = {Bioinformatics},  % author
+  pdfkeywords = {Proteomic discovery, Biomarker, Quality Statement},
+  pdfsubject = {SQS report},     % description
+  pdfpagemode = UseNone
+}
+
+% ------------
+%\title{\mytitle}
+%\date{}
+\begin{document}
+%\maketitle   % don't make the title
+% ------------
+\noindent \mytitle \\
+\ClientName \\
+
+\vspace{1cm}
+
+\noindent COMPANY \\
+ADDRESS \\
+CITY, STATE \hspace{0.2cm} ZIP \\
+
+
+\hspace{0.5\textwidth}
+\begin{tabular}{ll}
+  Sponsor: & \SponsorName \\
+  Document version: & v1.0 \\
+  Date: & \today \\
+\end{tabular}
+
+
+\vspace{1cm}
+
+\begin{description}
+  \item[Description:] Quality summary of results from the analysis of
+    \MatrixName~samples with the SomaScan proteomic discovery platform
+    performed by COMPANY.
+\end{description}
+
+
+% ---------------------------------
+\section{Overview} \label{sec:over}
+% ---------------------------------
+A total of \NumSamples~\MatrixName~samples were assayed in the Version 3.0
+somaScan\texttrademark~assay in \Sets, along with
+\NumCalibrators~\MatrixName~calibrator samples, \NumQC~quality control samples,
+and \NumBuffers.
+%Experimental groups of the \NumSamples~samples include triplicate samples of
+%each of the following subjects: Healthy Controls (10), Sporadic ALS (7), and
+%the ALS genetic mutations FUS/TLS (1), SOD1 (1), and TDP-43 (1).
+Run qualification standards were derived from metrics on the
+SomaScan\texttrademark~discovery platform of 1200$^+$ analytes\texttrademark. 
+Results, quantified in relative florescence units (RFU), are reported for
+\NumSamples~\MatrixName~samples and \NumApts~analytes.
+
+
+% ---------------------------------
+\section{Assay Background} \label{sec:background}
+% ---------------------------------
+Sample data is first normalized to remove hybridization artifacts within a run
+followed by median normalization to remove other assay biases within the 
+% The "run." and "required" are written twice as a hack to avoid spaces before
+% the "." and the ",x"
+\ifcalibrated
+  run and finally calibrated to remove assay differences between runs. 
+\else
+  run. Since these samples were assayed in a single run no inter-run calibration was 
+  \ifincludeCalSop
+    required, though the calibration scale factors were examined to verify that
+    the met the assay acceptance criteria.  
+  \else
+    required.
+  \fi
+\fi
+
+Hybridization control and median normalization scale factors are expected to be
+in the range of 0.4$-$2.5\ifuseLogScale ($\pm~1.32$ on log$_2$ scale)\fi. 
+The median of the calibration scale factors is expected to be in the range
+$0.8-1.2$ and a minimum of 95\% of individual \texttrademark~reagents in
+the total array must be within $\pm$~0.4 from the median (i.e. less than 5\% in
+the tails of the distribution). Gaussian distributions of scale factors are expected.
+
+
+% ---------------------------------
+\subsection{Hybridization Control Normalized Data} \label{sec:hyb}
+% ---------------------------------
+Each set of measurements was normalized to remove intra-run hybridization
+variation using the hybridization reference standard. 
+The distribution\Plural~of these scale factors \IsAre~displayed below in
+Figure~\ref{fig:hyb_cdf} and summarized in Table~\ref{tab:hyb}.
+
+
+% Fig 1
+\begin{figure}[H]
+  \centering
+  \includegraphics[height=.5\textwidth]{plots/hyb_norm.pdf}
+  \caption{Boxplot of the hybridization scale factors \hl{grouped by run}. The
+    acceptance criteria for scale factors are indicated with dashed lines.}
+  \label{fig:hyb_cdf}
+\end{figure}
+
+
+
+
+
+\begin{table}[ht]
+  \begin{center}
+    \input{tables/hyb_norm.tex}
+    \ifuseLogScale
+      \caption{Summary of log$_2$ hybridization scale factor distribution\Plural.}
+    \else 
+      \caption{Summary of hybridization scale factor distribution\Plural.}
+    \fi
+    \label{tab:hyb}
+  \end{center}
+\end{table}
+
+\ifHybFails
+
+There \NumHybFail~that had hybridization scale factors outside the acceptable
+range (Table \ref{tab:hybFail}).  Results based on samples and/or proteins with
+hybridization scale factors outside the acceptance criteria should be treated
+with caution. Sensitivity analysis is recommended.
+
+\else
+
+All samples in the run\Plural~had hybridization scale factors within the
+acceptable range.
+
+\fi
+
+
+\ifHybFails
+\begin{table}[ht]
+  \begin{center}
+    \input{tables/hyb_fail.tex}
+    \caption{Samples that failed the hybridization normalization acceptance
+      criteria.}
+    \label{tab:hybFail}
+  \end{center}
+\end{table}
+\fi
+ 
+\ifSaturation 
+Analytes with all values above the saturation threshold for analyte detection
+using Agilent microarrays (conservatively, 80,000 RFU) are subject to a loss of
+differentiation between samples and/or unexpected results during median
+normalization. There \NumSaturation~with all RFU values above this threshold
+(see Table~\ref{tab:saturation}.) The hybridization normalization file is
+included in the deliverables to allow for evaluation of the analytes with high
+overall signal. 
+
+\begin{table}[ht!]
+  \begin{center}
+    \input{tables/saturation.tex}
+      \caption{Analytes with minimum RFU greater than 80,000.}
+    \label{tab:saturation}
+  \end{center}
+\end{table}
+\fi
+
+
+% ---------------------------------
+\subsection{Median Normalized Data} \label{sec:med}
+% ---------------------------------
+Hybridization normalized data were subsequently median normalized by
+analyte\texttrademark~dilution mix.  Median normalization is performed
+separately for clinical samples and assay calibrators within each run.
+Clinical samples were median normalized \hl{how was the data normalized, by
+group, across groups, etc}.
+
+%Median normalization \emph{across} time points removes this effect but in the
+%process it may mute actual signal changes between these extreme time points. 
+%To avoid this, we normalized samples within each time point separately. 
+
+\hl{After data delivery the samples will be unblinded and the topic of
+  normalization grouping may be revisited.} The distributions of median
+  normalization scale factors are displayed below in Figure~\ref{fig:medNorm} and
+  summarized in Table~\ref{tab:medNorm}.
+
+
+
+% Fig 2
+\begin{figure}[H]
+  \centering
+  \includegraphics[height=.5\textwidth]{plots/med_norm.pdf}
+  \caption{Boxplot of the median normalization scale factors by set and
+    dilution. The acceptance criteria for scale factors are indicated with dashed
+    lines.}
+  \label{fig:medNorm}
+\end{figure}
+
+
+\begin{table}[ht!]
+  \begin{center}
+    \input{tables/med_norm.tex}
+    \ifuseLogScale
+      \caption{Summary of log$_2$ median normalization scale factor distributions.}
+    \else 
+      \caption{Summary of median normalization scale factor distributions.}
+    \fi
+    \label{tab:medNorm}
+  \end{center}
+\end{table}
+
+\ifMedFails
+There \NumMedFail~that had median normalization scale factors outside the
+acceptable range (Table \ref{tab:medFail}). \hl{One of these samples was well
+outside the acceptance criteria for all three dilutions and therefore data for
+this sample has not been delivered.} Results based on samples with median
+normalization scale factors outside the acceptance criteria should be treated
+with caution. Sensitivity analysis is recommended.
+\else
+All samples in the run\Plural~had median normalization scale factors within the
+acceptable range.
+\fi
+
+\ifMedFails
+\begin{table}[H]
+  \begin{center}
+    \input{tables/med_fail.tex}
+    \ifuseLogScale
+      \caption{Summary of the log$_2$ median normalization scale factor(s) for
+        the \NumMedFails~that failed to meet the median normalization acceptance
+        criteria.}
+    \else 
+      \caption{Summary of the median normalization scale factor(s) for the
+        \NumMedFails~that failed to meet the median normalization acceptance
+        criteria.}
+    \fi
+    \label{tab:medFail}
+  \end{center}
+\end{table}
+\fi
+ 
+
+% ---------------------------------
+\subsection{Calibrated Data} \label{sec:cal}
+% ---------------------------------
+
+% ------------ for one-plate studies ----------------------------
+% same as below bc calibration is to an external ref
+
+
+\ifincludeCalSop
+
+% ------------ for plasma/serum ----------------------------
+For each analyte, the ratio of the calibration reference standard to the median
+calibrator signal in the run was calculated and resulting scale factor was
+applied to reduce inter-run variation. The distribution\Plural~of the
+calibration scale factors \IsAre~displayed below in Figure~\ref{fig:calSOP} and
+summarized in Table~\ref{tab:calSOP}. 
+
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=.9\textwidth]{plots/cal_sop.pdf}
+  \caption{Distribution of the calibration scale factors \hl{grouped by run}.
+    The median of each calibration scale factor distribution must be between 0.8
+    and 1.2 (left panel). Additionally, 95\% of the scale factors for each
+    distribution must be within $\pm$~0.4 from the median for that run (right
+    panel).}
+  %\caption{Distribution of the calibration scale factors by run.}
+  \label{fig:calSOP}
+\end{figure}
+
+
+\begin{table}[ht!]
+  \begin{center}
+    \input{tables/cal_sop.tex}
+    \caption{Summary of the calibration scale factor distribution\Plural.}
+    \label{tab:calSOP}
+  \end{center}
+\end{table}
+
+  \hl{Plate failures are not handled by the auto-sqs, you'll need to add your
+      own text here. Choose from:}
+  \hl{All runs passed the run acceptance criteria based on location and tail
+      weight of the calibration scale factor distribution.}
+  \hl{All runs also passed the criterion that 95\% of the scale factors must be
+      within $\pm$~0.4 from the median.}
+
+\ifCalFails
+
+There \NumCalFail~that had calibration scale factors in the tails of the
+distribution\Plural~(Table \ref{tab:caltail}).  Results based on analyte with
+calibration scale factors outside the acceptance criteria should be treated
+with caution.  Sensitivity analysis is recommended.
+  
+  %\hl{The median calibration scale factors for the run are within the
+  %acceptance criteria}, with \NumCalFail~falling in the tails of the
+  %distribution\Plural. 
+
+  \begin{table}[ht!]
+    \begin{center}
+      %\tiny
+      \input{tables/tail_apts.tex}
+      \caption{Analytes with calibration scale factors in the tails of the
+        distribution\Plural.}
+      \label{tab:caltail}
+    \end{center}
+  \end{table}
+
+\else
+All analytes in the run\Plural~had calibration scale factors within the
+acceptable range.
+\fi
+
+\else  % ------------ for cell lysate ----------------------------
+Calibration is not performed on cell lysate/cell media samples.
+\fi    % Paired with ifincludeCalSop
+
+
+
+
+\ifshowSampleNotes
+\newpage
+\fi
+% ---------------------------------
+\subsection{Sample Appearance} \label{sec:appear}
+% ---------------------------------
+
+\ifshowSampleNotes
+
+The sample appearance at the time of assay execution was noted by the assay
+execution team and is summarized in Table~\ref{tab:sampleNotes}.
+
+\hl{
+The most common observations were lipemic and hemolyzed samples. There is no
+conclusive evidence that the presence of lipids in a sample affects the
+measurement of protein concentration however these samples should be treated
+with caution. Hemolysis can cause an increase in measured hemoglobin
+concentrations and a decrease in measured haptoglobin concentrations. These
+samples may be contaminated with other intracellular proteins as well. Please
+treat these samples with caution, sensitivity analysis is recommended.
+}
+
+
+\begin{table}[ht]
+  \begin{center}
+    \input{tables/sample_notes.tex}
+    \caption{Sample appearance notes at the time of assay execution.}
+    \label{tab:sampleNotes}
+  \end{center}
+\end{table}
+
+\else
+Sample appearance was consistent with typical \MatrixName~samples and no
+hemolyzed or lipemic samples were noted.
+% --------------- THIS IS FOR CSF STUDIES -------------
+%Sample appearance was consistent with typical \MatrixName~samples and no
+%unusual samples were noted. % THIS IS FOR CELL LYSATE
+%Sample appearance was consistent with typical \MatrixName~samples and no
+%unusual samples, e.g. samples with visual signs of blood contamination, were noted.
+% --------------- THIS IS FOR CSF STUDIES -------------
+\fi
+
+\end{document}

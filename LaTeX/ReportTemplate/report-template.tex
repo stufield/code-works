@@ -1,0 +1,55 @@
+% Change "report" to "article" to get a page number on title page
+\documentclass[10pt]{article}
+
+% In case you need to adjust margins:
+\topmargin=-0.45in
+\evensidemargin=0in
+\oddsidemargin=0in
+\textwidth=6.25in
+\textheight=9in
+\headsep=0.25in
+
+% Title Information
+\newcommand{\hmwkTitle}{Long Title}
+\newcommand{\shortTitle}{Running Title}
+\newcommand{\hmwkDueDate}{\today}
+\newcommand{\hmwkClass}{COMPANY - Confidential}
+\newcommand{\hmwkClassInstructor}{}
+\newcommand{\hmwkAuthorName}{Stu Field}
+\newcommand{\n}{\tabularnewline[10pt]}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Custom Commands
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{mytable}{\begin{center}\begin{spacing}{1}\footnotesize}{\end{spacing} \end{center} }
+\newenvironment{myfigure}{\begin{center}}{\end{center} }
+\newcommand{\vs}{\vspace{3pt}\\}
+\newcommand{\Problem}[1]{\ \vspace{10pt}\\{\noindent \bf \large Problem #1)}}
+\newcommand{\Lemma}[2]{\\{\noindent \bf Lemma #1:} #2\vs{\bf Proof:}}
+\newcommand{\Prob}{\mathbb P}
+\newcommand{\Exp}{\mathbb E}
+\newcommand{\Var}{\text{Var}}
+\providecommand{\shadeRow}{\rowcolor[rgb]{0.9, 0.9, 0.9}}
+
+% Toggle for pdf/rtf
+\input{report-header-pdf.tex}
+%\input{report-header-rtf.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Make title
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{\hmwkTitle}
+\author{\hmwkAuthorName}
+
+\begin{document}
+%\maketitle
+
+% Swap for pdf/rtf
+\input{title_page.tex}
+%\input{title_page.tex}
+
+\begin{spacing}{1.5}
+
+\end{spacing}
+\end{document}

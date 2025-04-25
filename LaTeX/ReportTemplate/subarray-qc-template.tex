@@ -1,0 +1,86 @@
+\documentclass[10pt]{article}
+\usepackage{amsfonts}
+\usepackage{amsmath,amsfonts,amsthm,amssymb}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+\usepackage{chngpage}
+\usepackage{color}
+\usepackage{graphicx,float}
+\usepackage{verbatim}
+\usepackage[round]{natbib}
+
+\newcommand{\hmwkTitle}{Mixing Report}
+\newcommand{\hmwkDueDate}{\today}
+\newcommand{\hmwkClass}{COMPANY}
+\newcommand{\hmwkClassInstructor}{}
+\newcommand{\hmwkAuthorName}{Stu Field}
+\newcommand{\n}{\tabularnewline[10pt]}
+
+\topmargin=-0.45in      
+\evensidemargin=0in     
+\oddsidemargin=0in      
+\textwidth=6.25in        
+\textheight=9in       
+\headsep=0.25in         
+
+\pagestyle{fancy}                                                       
+\lhead{\hmwkAuthorName}                                                 
+\chead{\hmwkClass\ : \hmwkTitle}                                        
+\rhead{\hmwkDueDate}                                                    
+\cfoot{\thepage}                                                                
+\renewcommand\headrulewidth{0.4pt}                                      
+\renewcommand\footrulewidth{0.4pt}                                      
+
+\newcommand{\todo}[1]{\textbf{TODO: \hl{#1}}}
+
+\newcommand{\vs}{\vspace{3pt}\\}
+\newcommand{\Problem}[1]{\ \vspace{10pt}\\{\noindent \bf \large Problem #1)}}
+\newcommand{\Lemma}[2]{\\{\noindent \bf Lemma #1:} #2\vs{\bf Proof:}}
+\newcommand{\Prob}{\mathbb P}
+\newcommand{\Exp}{\mathbb E}
+\newcommand{\Var}{\text{Var}}
+\providecommand{\shadeRow}{\rowcolor[rgb]{0.9, 0.9, 0.9}}
+
+
+
+\title{Experiment Report for %s}
+\author{Stu Field}
+
+\begin{document}
+\maketitle
+
+\section{Slide and Subarray Plots}
+	\subsection{Subarray Boxplot}
+%s
+	\subsection{Slides}
+%s
+	\subsection{Subarrays}
+%s
+\section{Subarray QC plots}
+
+\section{ANOVA Analysis}
+	\subsection{CV CDFs}
+%s
+	\subsection{Aptamer ANOVA Plots}
+		\subsubsection{Raw Data}
+      These plots diplay the contribution of variance from three sources,
+      inter-slide variation, inter-subarray variation, and inter-spot
+      variation. 
+      The aptamers are sorted by the sum of inter-slide and inter-subarray CV,
+      with the contribution from inter-sport variation plotted on top.
+      This causes some of the rows of aptamer CVs to have y-axes with different
+      ranges, however has the advantage of ordering the aptamers by the CV of
+      their observed RFU value.
+      The motivation for this is aptamers with a high inter-spot CV can still
+      be very consistent across subarrays since there are 10 replicate spots on
+      each subarray.\\
+%s
+		\subsubsection{All Flags Applied}
+      These plots are identical to the previous plots, however all flagged
+      spots have been removed.\\
+%s
+		\subsubsection{All Flags and Hybridization Normalization Applied}
+%s
+
+\end{document}

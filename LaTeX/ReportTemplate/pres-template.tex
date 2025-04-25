@@ -1,0 +1,89 @@
+\documentclass[compress]{beamer}%[compress, handout]{beamer}%
+
+%\hypersetup{pdfpagemode=FullScreen}
+%\beamertemplateshadingbackground{yellow!30}{green!20}
+
+\usetheme[secheader]{Madrid}%Boadilla%
+%\setbeamercovered{highly dynamic}%{dynamic}%{invisible}%{transparent}%
+%\beamerdefaultoverlayspecification{<+->}
+%\AtBeginSection[]{\frame{\frametitle{Outline}\tableofcontents[current]}}
+
+\usepackage{amsmath, amssymb}
+\usepackage{verbatim, subfigure}
+\usepackage{movie15}
+\usepackage{times, mathptmx, attachfile, comment, tikz}
+\newcommand{\Prob}{\mathbb P}
+\newcommand{\Exp}{\mathbb E}
+\newcommand{\objwidth}{.4\textwidth}
+\newcommand{\objtextwidth}{.58\textwidth}
+
+\usepackage{pgfpages}
+%\logo{\pgfuseimage{/home/user/logo.jpg}}
+
+\begin{document}
+\title[Short Title]{Long Title}
+\institute[COMPANY]{
+	\includegraphics{/home/user/logo.jpg}
+}
+
+\AtBeginSection[]
+{
+  \begin{frame}[plain]{Outline}
+    \tableofcontents[currentsection]
+	\end{frame}
+} 
+
+\author[COMPANY-Confidential]{Stu Field}
+
+\date
+
+[\today]
+{\today}
+
+\begin{frame}[plain]
+    \titlepage
+\end{frame}
+
+\begin{comment}
+\begin{frame}
+	\frametitle{Outline}
+	\tableofcontents
+\end{frame}
+\end{comment}
+
+
+\begin{frame}
+	\frametitle{Frame Title}
+	\begin{itemize}
+		\item Item
+		\begin{itemize}
+			\item Sub item 1
+			\item Sub item 2
+			\item Sub item 3
+		\end{itemize}
+	\end{itemize}
+	\begin{center}
+		\includegraphics[width=.4\textwidth]{soma}
+	\end{center}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Frame Title}
+	\begin{minipage}{.45\textwidth}
+		\begin{itemize}
+			\item Item
+			\begin{itemize}
+				\item Sub item 1
+				\item Sub item 2
+				\item Sub item 3
+			\end{itemize}
+		\end{itemize}
+	\end{minipage}	
+	\begin{minipage}{.45\textwidth}
+		\begin{flushright}
+			\includegraphics[width=\textwidth]{soma}
+		\end{flushright}
+	\end{minipage}	
+\end{frame}
+
+\end{document}
