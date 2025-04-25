@@ -36,7 +36,7 @@ sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
                         rfu_thresh = 80000, skip_sat_check = TRUE) {
 
   signal_info("Loading template data ...")
-  template_pairs <- load_template_pairs()
+  template_pairs <- parse_template_pairs()
 
   if ( !"Adat" %in% names(template_pairs) ) {
     stop("Adat missing from `sqs-data.txt`", call. = FALSE)
@@ -114,37 +114,30 @@ sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
 }
 
 
-# parse_template_pairs
-load_template_pairs <- function() {
+parse_template_pairs <- function() {
   tokens <- read_text("sqs-data.txt")
-  tokens <- vapply(tokens, function(x) gsub("#.*$", "", x), "") # rm comments
-  tokens <- strsplit(tokens, ":")
-  # rm empty strings at end of file
-  tokens <- tokens[vapply(tokens, function(x) length(x) > 0, NA)]
-  # rm empty stings
-  tokens <- tokens[!vapply(tokens, function(x) length(x) == 1L && x[1L] == "", NA)]
-  template_pairs_temp <- lapply(tokens, function(pair) {
-    if ( length(pair) != 2L ) {
-      stop("`sqs-data.txt` is in an incorrect format.\n",
-      "Should contain `key: value` pairs.\n
-      Found: ", value(pair), call. = FALSE)
-    }
-    key   <- gsub("^[\t ]+|[\t ]+$", "", pair[1L])
-    value <- gsub("^[\t ]+|[\t ]+$", "", pair[2L])
-    c(key, value)
-  })
+  tokens <- gsub("^(.*?)#.*", "\\1", tokens) |>
+    keep_it(function(x) x != "") |>
+    trimws() |>
+    strsplit(":[\t ]*")
 
-  template_pairs <- lapply(template_pairs_temp, function(pair) pair[2L])
-  names(template_pairs) <- lapply(template_pairs_temp, function(pair) pair[1L])
+  stopifnot(
+    "`sqs-data.txt` incorrect format. Should contain `key: value` pairs." =
+      all(lengths(tokens) == 2L)
+  )
+
+  template_pairs <- lapply(tokens, `[`, x = 2L) |>
+    setNames(vapply(tokens, `[`, x = 1L, ""))
 
   if ( "AptMenu" %in% names(template_pairs) ) {
-    if ( template_pairs$AptMenu %in% c("Premium", "450plex") ) {
-      column <- list(Premium = "Premium", "450plex" = "On450")[[template_pairs$AptMenu]]
+    if ( template_pairs$AptMenu %in% c("Premium", "450-plex") ) {
+      column <- c(Premium = "Premium", "450-plex" = "On450")
+      column <- column[template_pairs$AptMenu]
       apts <- SSmenu.df[SSmenu.df[, column] == "Y", ]$SeqId
       template_pairs$apts <- apts
     } else {
-      stop("AptMenu must be either Premium or 450-plex. ",
-      "Please check `sqs-data.txt`.", call. = FALSE)
+      stop("`AptMenu` must be either Premium or 450-plex. ",
+           "Please check `sqs-data.txt`.", call. = FALSE)
     }
   } else {
     stop("`AptMenu` missing from `sqs-data.txt`", call. = FALSE)

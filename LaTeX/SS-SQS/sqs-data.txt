@@ -2,10 +2,11 @@
 # Information not present in the adat must be provided. 
 # Information in adat can be overridden here by manually entering values
 
-Adat: NULL				  # Mandatory. Path to adat file. Example: ../../adats/px.12.071.hyb.med.cal.adat
-ClientName: NULL		# Mandatory. Name of client. Example: J&J
-SponsorName: NULL 	# Mandatory. Name of sponsor. Example: Dr. Strangelove
-AptMenu: Premium		# Mandatory. Defines SOMAscan menu content. Must be either Premium or 450plex
-MatrixName: NULL		# Optional. Will override SampleMatrix field from adat. Example: Plasma
-Sets: NULL				  # Optional. Will override plates in PlateId from adat. Example: Sets A-H
-NumSamples: NULL		# Optional. Will override number of rows in adat excluding calibrators. Example: 84
+Adat: NULL          # Mandatory. Path to adat file. Example: ~/user/adats/PX-12-345.hyb.med.cal.adat
+ClientName: NULL    # Mandatory. Name of client. Example: J&J
+SponsorName: NULL   # Mandatory. Name of sponsor. Example: Dr. Gandalf the White
+AptMenu: Premium    # Mandatory. Defines SomaScan menu content. Must be either Premium or 450-plex
+
+MatrixName: NULL    # Optional. Will override SampleMatrix field from adat. Example: Plasma
+Sets: NULL          # Optional. Will override plates in PlateId from adat. Example: Sets A-H
+NumSamples: NULL    # Optional. Will override number of rows in adat excluding calibrators. Example: 84
