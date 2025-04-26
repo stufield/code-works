@@ -1,30 +1,26 @@
-#######################
-#  General
-#######################
+
+TOUCH = touch
 MV = mv -f
 RM = rm -rf
 CP = cp
-TOUCH = touch
 RCMD = R --vanilla CMD
 RSCRIPT = Rscript --vanilla
-INSTALL = install
 LATEX = latex
-PDFLATEX = pdflatex
+PDFLATEX = pdflatex --interaction=batchmode
 BIBTEX = bibtex
 MAKEIDX = makeindex
 
 .PRECIOUS: Makefile
 
-all:  
-
 %.pdf: %.tex
+	@ cp sqs-template.tex $*.tex
 	$(PDFLATEX) $*
 	$(PDFLATEX) $*
 
-%.tex: sqs-params.txt env.R
+%.tex: sqs-params.txt *.R
 	@ $(RSCRIPT) \
 		-e "source('env.R')" \
 		-e "sqs_wrapper(skip_cal = TRUE)"
 
 clean:
-	$(MV) *.log *.aux *.out /tmp
+	@ $(MV) *.log *.aux *.out sqs-params.tex /tmp
