@@ -1,47 +1,39 @@
-# ----- sqs_wrapper documention ----- #
-# Figure sizes:
-#   Proportional scaling of figure size. Default=1
-# @param hyb_fig_scale
-# @param med_fig_scale
-# @param cal_fig_scale
-#
-# Legend sizes:
-#   Proportional scaling of legend size. Default=1
-# @param med.legend.scale
-# @param cal.legend.scale
-#
-# Figure widths:
-#   Proportional scaling of figure width. Used for studies with
-# many plates to provide room for boxes
-# @param hyb_fig_width
-# @param med_fig_width
-#
-# Boxplot x-axis:
-#   Jitter labels on x-axis so that they don't overlap
-# @param hyb_jitter_x
-# @param med_jitter_x
-#
-# @param skip_sat_check should a saturation check be skipped? (T)
-# @param rfu_thresh the threshold for saturation if a check is performed
-# @param skip_cal should calibration be skipped? (F)
-# @param skip_med should med.norm be skipped? (F)
-# @param use_log_scale should plots be made with log2-transform or linear space?
+#' ----- sqs_wrapper() documentation ----- #
+#'
+#' @param skip_sat_check `logical(1)`. Should a saturation check be skipped?
+#' @param rfu_thresh `numeric(1)`. threshold for saturation if a check is performed
+#' @param skip_cal `logical(1)`. Should calibration be skipped?
+#' @param skip_med `logical(1)`. Should med.norm be skipped?
+#' @param use_log_scale `logical(1)`. Should plots be generated
+#'   with log2-transform?
+#'
+#' Figure sizes:
+#'   Proportional scaling of figure size.
+#' @param hyb_fig_scale
+#' @param med_fig_scale
+#' @param cal_fig_scale
+#'
+#' Figure widths:
+#'   Proportional scaling of figure width. Used for studies with
+#'   many plates to provide room for boxes
+#' @param hyb_fig_width
+#' @param med_fig_width
+#'
 # ----------------------------------- #
-sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
-                        cal_fig_scale = 1, med_legend_scale = 1,
-                        cal_legend_scale = 1, hyb_fig_width = 1,
-                        med_fig_width = 1, hyb_jitter_x = FALSE,
-                        med_jitter_x = FALSE, skip_cal = FALSE,
-                        skip_med = FALSE, use_log_scale = TRUE,
-                        rfu_thresh = 80000, skip_sat_check = TRUE) {
+sqs_wrapper <- function(skip_med = FALSE, skip_cal = FALSE,
+                        use_log_scale = TRUE,
+                        skip_sat_check = TRUE, rfu_thresh = 80000,
+                        hyb_fig_scale = 1, hyb_fig_width = 5,
+                        med_fig_scale = 1, med_fig_width = 5,
+                        cal_fig_scale = 1) {
 
-  signal_info("Loading template data ...")
+  signal_info("Loading SQS inputs from `sqs-params.txt` ...")
   template_pairs <- parse_template_pairs()
 
   if ( !"Adat" %in% names(template_pairs) ) {
-    stop("Adat missing from `sqs-data.txt`", call. = FALSE)
+    stop("Adat missing from `sqs-params.txt`", call. = FALSE)
   } else if ( template_pairs$Adat == "NULL" ) {
-    stop("You forgot to enter an ADAT file path!", call. = FALSE)
+    stop("You forgot to enter an Adat file path!", call. = FALSE)
   }
 
   signal_info("Loading adat ...")
@@ -60,18 +52,20 @@ sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
 
   signal_info("Writing sqs-params.tex ...")
   write_sqs_param_tex(template_pairs, adat_pairs, adat, sample_type_table)
-
-  if ( use_log_scale ) {
-    cat(sprintf("\\useLogScaletrue\n"), file = "sqs-params.tex", append = TRUE)
-  } else {
-    cat(sprintf("\\useLogScalefalse\n"), file = "sqs-params.tex", append = TRUE)
-  }
   signal_done("done")
 
+  if ( use_log_scale ) {
+    signal_info("Using log2-scale transform ...")
+    log_scale_text <- "\\useLogScaletrue\n"
+  } else {
+    log_scale_text <- "\\useLogScalefalse\n"
+  }
+  withr::with_output_sink(
+    "sqs-params.tex", append = TRUE, cat(log_scale_text)
+  )
+
   signal_info("Making hyb norm plots ...")
-  hyb_fails <- create_hyb_norm_data(adat, hyb_fig_scale,
-                                    hyb_fig_width, jitter_x = hyb_jitter_x,
-                                    use_log_scale = use_log_scale)
+  hyb_fails <- create_hyb_norm_data(adat, hyb_fig_scale, hyb_fig_width)
   signal_done("done")
 
   # check for (cell sample) saturation
@@ -85,16 +79,13 @@ sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
 
   if ( !skip_med ) {
     signal_info("Making med norm plots ...")
-    med_fails <- create_med_norm_data(adat, med_fig_scale,
-                                      med_legend_scale, med_fig_width,
-                                      jitter_x = med_jitter_x,
-                                      use_log_scale = use_log_scale)
+    med_fails <- create_med_norm_data(adat, med_fig_scale, med_fig_width)
     signal_done("done")
   }
 
   if ( !skip_cal ) {
     signal_info("Testing Cal SOP criteria ...")
-    create_cal_sop_data(adat, template_pairs, cal_fig_scale, cal_legend_scale)
+    create_cal_sop_data(adat, template_pairs, cal_fig_scale)
     signal_done("done")
   }
 
@@ -238,32 +229,36 @@ write_sqs_param_tex <- function(template_pairs, adat_pairs,
 }
 
 
-create_hyb_norm_data <- function(adat, fig_scale, fig_width,
-                                 jitter_x, use_log_scale) {
+create_hyb_norm_data <- function(adat, fig_scale, fig_width) {
 
   withr::local_output_sink("sqs-params.tex", append = TRUE)
 
-  # This is now a ggplot; save with ggsave()
-  #SomaPlotr::figure("plots/hyb-norm.pdf", 4.4, 5 * fig_width, scale = fig_scale)
-  #on.exit(SomaPlotr::close_figure("plots/hyb-norm.pdf"))
-  tab <- plot_scale_factors(adat, drop_hyb = FALSE, do_cdf = FALSE)
-  #write_latex_tbl(tab, rn_label = "Run", file = "tables/hyb-norm.tex")
+  hyb_nm <- grep("^HybControl", names(adat), value = TRUE)
+  stopifnot("Couldn't find a `HybControl` column in ADAT." = len_one(hyb_nm))
+  hyb_vec <- log2(adat[[hyb_nm]])
+  tbl <- tapply(hyb_vec, adat$PlateId, summary) |>
+    do.call(what = "rbind") |>
+    as.data.frame()
+  tbl <- tbl[, c("Min.", "Median", "Max.")]
+  write_latex_tbl(tbl, rn_label = "Run", file = "tables/hyb-norm.tex")
 
-  hyb_fails <- adat[abs(log(adat$HybControlNormScale, base = 2)) > log(2.5, base = 2), ]
+  p <- plot_scale_factors(adat, drop_hyb = FALSE, do_cdf = FALSE)
+  ggsave("plots/hyb-norm.pdf", p, scale = fig_scale, width = fig_width)
 
-  were_was <- ifelse(nrow(hyb_fails) == 1L, "was", "were")
-  plural   <- ifelse(nrow(hyb_fails) == 1L, "", "s")
+  hyb_fails <- adat[abs(hyb_vec) > log2(2.5), ]
+  were_was  <- ifelse(nrow(hyb_fails) == 1L, "was", "were")
+  plural    <- ifelse(nrow(hyb_fails) == 1L, "", "s")
 
   cat(sprintf("\\renewcommand{\\NumHybFail}{%s %i sample%s}\n",
               were_was, nrow(hyb_fails), plural))
 
   if ( nrow(hyb_fails) > 0L ) {
-    cat(sprintf("\\HybFailstrue\n"))
+    cat("\\HybFailstrue\n")
     temp_hyb_fails <- set_rn(hyb_fails, hyb_fails$ExtIdentifier)
     write_latex_tbl(temp_hyb_fails[, c("PlateId", "SampleId", "HybControlNormScale")],
                     file = "tables/hyb-fail.tex", rn_label = "ExtIdentifier")
   } else {
-    cat(sprintf("\\HybFailsfalse\n"))
+    cat("\\HybFailsfalse\n")
   }
 
   list(hyb_fails = hyb_fails)
@@ -285,7 +280,7 @@ create_saturation_data <- function(adat, threshold) {
   apt_data <- aptdata[apts, ] # subset for 1129
   cal_name <- grep("^Cal", names(apt_data), value = TRUE)
 
-  if ( length(calname) > 0L ) {
+  if ( length(cal_name) > 0L ) {
     signal_info("Undoing calibration with factors from", cal_name[1L])
     apt_names <- SomaDataIO::getAnalytes(adat)
     for ( i in apt_names ) {
@@ -299,7 +294,7 @@ create_saturation_data <- function(adat, threshold) {
   scales <- sort(grep("^NormScale", SomaDataIO::getMeta(adat), value = TRUE))
 
   # get a list of aptamers by dilutions
-  by_dil <- split(apts, aptdata$Dilution)  # same order as above due to sorting
+  by_dil <- split(apts, apt_data$Dilution) # same order as above due to sorting
 
   if ( length(scales) > 0L ) {
     signal_info("Undoing med norm (by dil)")
@@ -308,73 +303,67 @@ create_saturation_data <- function(adat, threshold) {
     }
   }
 
-  # finally, we can seek those analytes for which
-  # *all* measures are above threshold
+  # finally, we return analytes for which all measures > threshold
   apt_mins <- apply(nadat[, apts], 2, min)
   saturated <- names(apt_mins)[apt_mins > threshold]
 
   # write out variables
   if ( length(saturated) > 0L ) {
-    cat(sprintf("\\Saturationtrue\n"))
+    cat("\\Saturationtrue\n")
     if ( length(saturated) > 1L ) {
-      cat(sprintf("\\renewcommand{\\NumSaturation}{were %i SOMAmers}\n", length(saturated)))
+      cat(sprintf("\\renewcommand{\\NumSaturation}{were %i Features}\n",
+                  length(saturated)))
     } else {
       cat("\\renewcommand{\\NumSaturation}{was 1 Feature}\n")
     }
 
     # write out table
-    tbldata <- aptdata[saturated, c("SomaId", "Target", "UniProt", "EntrezGeneSymbol")]
-    # some UniProts are comma separated lists, much better to have spaces
-    tbldata$UniProt <- gsub(",", " ", tbldata$UniProt)
+    tbl <- apt_data[saturated, c("SomaId", "Target", "UniProt", "EntrezGeneSymbol")]
+    # some UniProts are comma separated lists, much better to have ;
+    tbl$UniProt <- gsub(",", ";", tbl$UniProt)
 
-    # add the minimum RFU values
-    min_rfu  <- as.matrix(apply(nadat[, saturated], 2, min))
-    colnames(min_rfu) <- "Minimum RFU"
-    tbl_data <- cbind(tbl_data, min_rfu)
-    write_latex_tbl(tbl_data, file = "tables/saturation.tex",
+    # add the minimum values
+    min_val  <- as.matrix(apply(nadat[, saturated], 2, min))
+    colnames(min_val) <- "Minimum RFU"
+    tbl <- cbind(tbl, min_val)
+    write_latex_tbl(as.data.frame(tbl), file = "tables/saturation.tex",
                     write.rownames = FALSE)
   } else {
-    cat(sprintf("\\Saturationfalse\n"))
+    cat("\\Saturationfalse\n")
   }
 }
 
 
-create_med_norm_data <- function(adat, fig_scale, legend_scale,
-                                 fig_width, jitter_x, use_log_scale) {
+create_med_norm_data <- function(adat, fig_scale, fig_width) {
 
   withr::local_output_sink("sqs-params.tex", append = TRUE)
   med_names <- get_norms(adat)
 
   if ( length(med_names) == 0L ) {
-    stop("No Med Norm Scale factors found")
+    stop("No Med Norm Scale factors found!", call. = FALSE)
   }
 
-  # this is now a ggplot; save with ggsave()
-  #SomaPlotr::figure("plots/med-norm.pdf", 5, 5 * fig_width, scale = fig_scale)
-  #on.exit(SomaPlotr::close_figure("plots/med-norm.pdf"))
-  tab <- plot_scale_factors(adat, drop_hyb = TRUE, do_cdf = FALSE)
-  #write_latex_tbl(tab, rn_label = "Run: Dilution", file = "tables/med-norm.tex")
+  tbl <- lapply(setNames(med_names, med_names), function(.x) {
+    vec <- log2(adat[[.x]])
+    tapply(vec, adat$PlateId, summary) |>
+      do.call(what = "rbind") |>
+      as.data.frame()
+  }) |>
+    do.call(what = "rbind")
+  tbl <- tbl[, c("Min.", "Median", "Max.")]
 
-  med_fails <- adat[, c("SampleId", med_names)] |>
-    set_rn(adat$ExtIdentifier %||% adat$SampleId)
+  p <- plot_scale_factors(adat, drop_hyb = TRUE, do_cdf = FALSE)
+  ggsave("plots/med-norm.pdf", p, scale = fig_scale, width = fig_width)
+
+  write_latex_tbl(tbl, rn_label = "Run: Dilution",
+                  file = "tables/med-norm.tex")
+
+  med_fails <- calc_norm_fails(adat, add_field = "ExtIdentifier") |>
+    dplyr::select(-row_names) |>
+    rm_rn() |>
+    col2rn("ExtIdentifier")
 
   rn_name <- ifelse(is.null(adat$ExtIdentifier), "", "ExtIdentifier")
-
-  med_fails[, 2:ncol(med_fails)] <- apply(as.data.frame(med_fails[, 2:ncol(med_fails)]),
-                                          2, function(sf) {
-            if ( use_log_scale ) {
-              scale_factors_str <- sprintf("%0.3f", log(sf, base = 2))
-            } else {
-              scale_factors_str <- sprintf("%0.3f", sf)
-            }
-            scale_factors_str[abs(log(sf, base = 2)) < log(2.5, base = 2)] <- ""
-            scale_factors_str
-  })
-
-  med_fails <- as.data.frame(med_fails)  # added sgf
-  med_fails <- med_fails[apply(med_fails[, 2:ncol(med_fails)], 1,
-                               function(row) any(row != "")), ]
-
   were_was <- ifelse(nrow(med_fails) == 1L, "was", "were")
   plural   <- ifelse(nrow(med_fails) == 1L, "", "s")
 
@@ -384,37 +373,15 @@ create_med_norm_data <- function(adat, fig_scale, legend_scale,
               plural))
 
   med_fails <- med_fails[order(med_fails$SampleId), ]
+  med_fails <- setNames(med_fails, gsub("([0-9])$", "\\1\\\\%", names(med_fails)))
+  med_fails <- setNames(med_fails, gsub("(%)$", "\\1 Dilution", names(med_fails)))
+  med_fails <- setNames(med_fails, gsub("_", "\\\\_", names(med_fails)))
 
   if ( nrow(med_fails) > 0L ) {
-    cat(sprintf("\\MedFailstrue\n"))
-    names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
-                                                  function(nm) gsub("[.]", " ", nm))
-    names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
-                                                 function(nm) gsub("$", "\\\\%", nm))
-    names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
-                                                 function(nm) gsub(" 005", " 0.005", nm))
-    names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
-                                                 function(nm) gsub(" 05", " 0.05", nm))
-    names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
-                                                 function(nm) gsub("2.5", "2.5", nm))
-    names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
-                                                 function(nm) gsub("^NormScale ", "", nm))
-    names(med_fails)[2:ncol(med_fails)] <- sprintf("%s Dilution",
-                                                   names(med_fails)[2:ncol(med_fails)])
-    med_fails <- med_fails[, c("SampleId", sort(names(med_fails)[2:ncol(med_fails)]))]
-
-    if ( all(rownames(med_fails) == med_fails$SampleId) && ncol(med_fails) > 2L ) {
-       med_fails <- med_fails[, setdiff(names(med_fails), "SampleId")]
-    } else {
-      med_fails <- as.data.frame(med_fails[, -grep("SampleId", names(med_fails))]) |>
-        set_rn(rownames(med_fails)) |>
-        setNames(setdiff(names(med_fails), "SampleId"))
-    }
-
+    cat("\\MedFailstrue\n")
     write_latex_tbl(med_fails, file = "tables/med-fail.tex", rn_label = rn_name)
-
   } else {
-    cat(sprintf("\\MedFailsfalse\n"))
+    cat("\\MedFailsfalse\n")
   }
 
   list(med_fails = med_fails)
@@ -422,7 +389,7 @@ create_med_norm_data <- function(adat, fig_scale, legend_scale,
 }
 
 
-create_cal_sop_data <- function(adat, template_pairs, fig_scale, legend_scale) {
+create_cal_sop_data <- function(adat, template_pairs, fig_scale) {
 
   withr::local_output_sink("sqs-params.tex", append = TRUE)
   seqid_matches <- SomaDataIO::getSeqIdMatches(SomaDataIO::getAnalytes(adat),
@@ -433,9 +400,7 @@ create_cal_sop_data <- function(adat, template_pairs, fig_scale, legend_scale) {
   apt_data <- apt_data[apts, ]
 
   sop_data <- sop_calibration(adat2, apt.data = apt_data)
-  # this is now a ggplot; save with ggsave()
-  # save plots here with: sop_data$plots
-  SomaPlotr::figure("plots/cal-sop.pdf", 2.9 * 1.6, 5.8 * 1.6, scale = fig_scale)
+  ggsave("plots/cal-sop.pdf", sop_data$plots, scale = fig_scale)
 
   tail_apts <- unique(unlist(sop_data$tail_fails))
   new_rn <- vapply(row.names(sop_data$cal_table), function(name) {
@@ -478,19 +443,21 @@ sample_notes_table <- function(adat) {
     return(invisible(NULL))
   }
 
-  tab <- adat[adat$SampleNotes != "", c("ExtIdentifier", "SampleId", "SampleNotes")]
-  tab <- tab[order(tab$SampleNotes), ]
+  tbl <- data.frame(adat) |>   # strip class
+    dplyr::filter(SampleNotes != "" | !is.na(SampleNotes)) |>
+    dplyr::select(ExtIdentifier, SampleId, SampleNotes) |>
+    dplyr::arrange(SampleNotes)
 
-  if ( nrow(tab) > 0L ) {
-    tab <- tab[order(tab$SampleId), ]
-    row.names(tab) <- seq_len(nrow(tab))
+  if ( nrow(tbl) > 0L ) {
+    tbl <- col2rn(rm_rn(tbl), "ExtIdentifier")
 
-    if ( all(as.character(tab$ExtIdentifier) == as.character(tab$SampleId)) ) {
-      tab <- tab[, -2L]
+    if ( identical(rownames(tbl), as.character(tbl$SampleId)) ) {
+      tbl <- dplyr::select(tbl, -SampleId)  # rm if duplicated as rn
     }
 
-    names(tab)[names(tab) == "SampleNotes"] <- "SampleAppearance"
-    write_latex_tbl(tab, rn_label = "", file = "tables/sample-notes.tex")
+    tbl$SampleNotes <- gsub("%", "\\\\%", tbl$SampleNotes)
+    tbl <- dplyr::rename(tbl, SampleAppearance = "SampleNotes")  # rename
+    write_latex_tbl(tbl, rn_label = "", file = "tables/sample-notes.tex")
     cat("\\showSampleNotestrue")
   } else {
     cat("\\showSampleNotesfalse")
@@ -537,7 +504,7 @@ write_latex_tbl <- function(data, file, rn_label = "", append = FALSE,
   cols  <- c("l", rep_len("r", ncol(data)))
 
   data <- data |>
-    set_rn(sub("_", "\\_", rownames(data), fixed = TRUE))
+    set_rn(gsub("_", "\\_", rownames(data), fixed = TRUE))
 
   header <- sprintf("\\hline\n\\textbf{%s} & \\textbf{%s} \\\\\n\\hline\n",
                     rn_label, paste(names(data), collapse = "} & \\textbf{"))
@@ -602,3 +569,22 @@ seq_Spuriomer <- c("2052-1", "2053-2", "2054-3", "2055-4",
                    "4666-199", "4666-200", "4666-202", "4666-205",
                    "4666-206", "4666-212", "4666-213", "4666-214")
 
+
+calc_norm_fails <- function(adat, threshold = 2.5, drop_hyb = TRUE,
+                            add_field = NULL) {
+
+  norms <- get_norms(adat, drop_hyb = drop_hyb)
+  .add  <- c("SlideId", "Subarray", "SampleId", "SampleType", "SampleGroup",
+             add_field, norms) |> unique()
+
+  out <- rn2col(adat, "row_names") |>
+    data.frame() |>  # strip `soma_adat` attrs
+    dplyr::select(row_names, any_of(.add))
+
+  .fltr <- apply(out[, norms, drop = FALSE], 1,
+                 function(.x) {
+                   any(abs(log2(.x)) > log2(threshold))
+                 })
+
+  data.frame(out[.fltr, ])
+}
