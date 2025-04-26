@@ -7,6 +7,6 @@ ClientName: NULL    # Mandatory. Name of client. Example: J&J
 SponsorName: NULL   # Mandatory. Name of sponsor. Example: Dr. Gandalf the White
 AptMenu: Premium    # Mandatory. Defines SomaScan menu content. Must be either Premium or 450-plex
 
-MatrixName: NULL    # Optional. Will override SampleMatrix field from adat. Example: Plasma
-Sets: NULL          # Optional. Will override plates in PlateId from adat. Example: Sets A-H
-NumSamples: NULL    # Optional. Will override number of rows in adat excluding calibrators. Example: 84
+MatrixName: NULL    # Optional. Will override SampleMatrix field from adat. Ex: Plasma
+Sets: NULL          # Optional. Will override plates in PlateId from adat. Ex: Sets A-H
+NumSamples: NULL    # Optional. Will override number of rows in adat excluding calibrators. Ex: 84
