@@ -115,14 +115,14 @@ sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
 
 
 parse_template_pairs <- function() {
-  tokens <- read_text("sqs-data.txt")
+  tokens <- read_text("sqs-params.txt")
   tokens <- gsub("^(.*?)#.*", "\\1", tokens) |>
     keep_it(function(x) x != "") |>
     trimws() |>
     strsplit(":[\t ]*")
 
   stopifnot(
-    "`sqs-data.txt` incorrect format. Should contain `key: value` pairs." =
+    "`sqs-params.txt` incorrect format. Should contain `key: value` pairs." =
       all(lengths(tokens) == 2L)
   )
 
@@ -138,10 +138,10 @@ parse_template_pairs <- function() {
       template_pairs$apts <- apts
     } else {
       stop("`AptMenu` must be either Premium or 450-plex. ",
-           "Please check `sqs-data.txt`.", call. = FALSE)
+           "Please check `sqs-params.txt`.", call. = FALSE)
     }
   } else {
-    stop("`AptMenu` missing from `sqs-data.txt`", call. = FALSE)
+    stop("`AptMenu` missing from `sqs-params.txt`", call. = FALSE)
   }
   template_pairs
 }
