@@ -21,10 +21,9 @@ all:
 	$(PDFLATEX) $*
 	$(PDFLATEX) $*
 
-%.tex: sqs-params.txt lib.R
+%.tex: sqs-params.txt env.R
 	@ $(RSCRIPT) \
-		-e "load('~/SomaPackages/SomaNormalization/data/HybRef.rda')" \
-		-e "source('lib.R')" \
+		-e "source('env.R')" \
 		-e "sqs_wrapper(skip_cal = TRUE)"
 
 clean:
