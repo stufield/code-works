@@ -39,7 +39,7 @@ sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
   template_pairs <- parse_template_pairs()
 
   if ( !"Adat" %in% names(template_pairs) ) {
-    stop("Adat missing from `sqs-data.txt`", call. = FALSE)
+    stop("Adat missing from `sqs-params`", call. = FALSE)
   } else if ( template_pairs$Adat == "NULL" ) {
     stop("You forgot to enter an ADAT file path!", call. = FALSE)
   }
@@ -58,13 +58,13 @@ sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
   signal_info("Processing Adat meta data ...")
   adat_pairs <- load_adat_pairs(adat)
 
-  signal_info("Writing sqs-data.tex ...")
+  signal_info("Writing `sqs-params.tex` ...")
   write_sqs_data_tex(template_pairs, adat_pairs, adat, sample_type_table)
 
   if ( use_log_scale ) {
-    cat(sprintf("\\useLogScaletrue\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\useLogScaletrue\n"), file = "sqs-params.tex", append = TRUE)
   } else {
-    cat(sprintf("\\useLogScalefalse\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\useLogScalefalse\n"), file = "sqs-params.tex", append = TRUE)
   }
   signal_done("done")
 
@@ -115,14 +115,14 @@ sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
 
 
 parse_template_pairs <- function() {
-  tokens <- read_text("sqs-data.txt")
+  tokens <- read_text("sqs-params.tex")
   tokens <- gsub("^(.*?)#.*", "\\1", tokens) |>
     keep_it(function(x) x != "") |>
     trimws() |>
     strsplit(":[\t ]*")
 
   stopifnot(
-    "`sqs-data.txt` incorrect format. Should contain `key: value` pairs." =
+    "`sqs-params.txt` incorrect format. Should contain `key: value` pairs." =
       all(lengths(tokens) == 2L)
   )
 
@@ -138,10 +138,10 @@ parse_template_pairs <- function() {
       template_pairs$apts <- apts
     } else {
       stop("`AptMenu` must be either Premium or 450-plex. ",
-           "Please check `sqs-data.txt`.", call. = FALSE)
+           "Please check `sqs-params.txt`.", call. = FALSE)
     }
   } else {
-    stop("`AptMenu` missing from `sqs-data.txt`", call. = FALSE)
+    stop("`AptMenu` missing from `sqs-params.txt`", call. = FALSE)
   }
   template_pairs
 }
@@ -169,7 +169,7 @@ load_adat_pairs <- function(adat) {
 write_sqs_data_tex <- function(template_pairs, adat_pairs,
                                adat, sample_type_table) {
 
-  out_file <- file("sqs-data.tex", open = "w")
+  out_file <- file("sqs-params.tex", open = "w")
   on.exit(close(out_file))
 
   process_pair <- function(template_pairs, adat_pairs, key) {
@@ -261,16 +261,16 @@ create_hyb_norm_data <- function(adat, fig_scale, fig_width,
 
   cat(sprintf("\\renewcommand{\\NumHybFail}{%s %i sample%s}\n",
               were_was, nrow(hyb_fails), plural),
-      file = "sqs-data.tex", append = TRUE)
+      file = "sqs-parsms.tex", append = TRUE)
 
   if ( nrow(hyb_fails) > 0L ) {
-    cat(sprintf("\\HybFailstrue\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\HybFailstrue\n"), file = "sqs-params.tex", append = TRUE)
     temp_hyb_fails <- hyb_fails
     row.names(temp_hyb_fails) <- temp_hyb_fails$ExtIdentifier
     write_latex(temp_hyb_fails[, c("PlateId", "SampleId", "HybControlNormScale")],
                 file = "tables/hyb-fail.tex", row.names = "ExtIdentifier")
   } else {
-    cat(sprintf("\\HybFailsfalse\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\HybFailsfalse\n"), file = "sqs-params.tex", append = TRUE)
   }
 
   list(hyb_fails = hyb_fails)
@@ -320,13 +320,13 @@ create_saturation_data <- function(adat, threshold) {
 
   # write out variables
   if ( length(saturated) > 0L ) {
-    cat(sprintf("\\Saturationtrue\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\Saturationtrue\n"), file = "sqs-params.tex", append = TRUE)
     if ( length(saturated) > 1L ) {
       cat(sprintf("\\renewcommand{\\NumSaturation}{were %i SOMAmers}\n",
-                  length(saturated)), file = "sqs-data.tex", append = TRUE)
+                  length(saturated)), file = "sqs-params.tex", append = TRUE)
     } else {
       cat("\\renewcommand{\\NumSaturation}{was 1 SOMAmer}\n",
-          file = "sqs-data.tex", append = TRUE)
+          file = "sqs-params.tex", append = TRUE)
     }
 
     # write out table
@@ -340,7 +340,7 @@ create_saturation_data <- function(adat, threshold) {
     tbldata <- cbind(tbldata, min_rfu)
     write_latex(tbldata, file = "tables/saturation.tex", write.rownames = FALSE)
   } else {
-    cat(sprintf("\\Saturationfalse\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\Saturationfalse\n"), file = "sqs-params.tex", append = TRUE)
   }
 }
 
@@ -394,14 +394,14 @@ create_med_norm_data <- function(adat, fig_scale, legend_scale,
   plural   <- ifelse(nrow(med_fails) == 1L, "", "s")
 
   cat(sprintf("\\renewcommand{\\NumMedFail}{%s %i sample%s}\n", were_was,
-              nrow(med_fails), plural), file = "sqs-data.tex", append = TRUE)
+              nrow(med_fails), plural), file = "sqs-params.tex", append = TRUE)
   cat(sprintf("\\renewcommand{\\NumMedFails}{%i sample%s}\n", nrow(med_fails),
-              plural), file = "sqs-data.tex", append = TRUE)
+              plural), file = "sqs-params.tex", append = TRUE)
 
   med_fails <- med_fails[order(med_fails$SampleId), ]
 
   if ( nrow(med_fails) > 0L ) {
-    cat(sprintf("\\MedFailstrue\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\MedFailstrue\n"), file = "sqs-params.tex", append = TRUE)
     names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
                                                   function(nm) gsub("[.]", " ", nm))
     names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
@@ -429,7 +429,7 @@ create_med_norm_data <- function(adat, fig_scale, legend_scale,
     write_latex(med_fails, file = "tables/med_fail.tex", row.names = rn_name)
 
   } else {
-    cat(sprintf("\\MedFailsfalse\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\MedFailsfalse\n"), file = "sqs-params.tex", append = TRUE)
   }
 
   list(med_fails = med_fails)
@@ -473,9 +473,9 @@ create_cal_sop_data <- function(adat, template_pairs, fig_scale, legend_scale) {
 
   cat(sprintf("\\renewcommand{\\NumCalFail}{%s %i analyte%s}\n",
               were_was, nrow(tail_data), plural),
-      file = "sqs-data.tex", append = TRUE)
+      file = "sqs-params.tex", append = TRUE)
   if ( nrow(tail_data) > 0L ) {
-    cat(sprintf("\\CalFailstrue\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\CalFailstrue\n"), file = "sqs-params.tex", append = TRUE)
   }
 }
 
@@ -483,7 +483,7 @@ create_cal_sop_data <- function(adat, template_pairs, fig_scale, legend_scale) {
 sample_notes_table <- function(adat) {
 
   if ( all(is.na(adat$SampleNotes)) ) {
-    cat("\\showSampleNotesfalse", file = "sqs-data.tex", append = TRUE)
+    cat("\\showSampleNotesfalse", file = "sqs-params.tex", append = TRUE)
     return()
   }
 
@@ -500,9 +500,9 @@ sample_notes_table <- function(adat) {
 
     names(tab)[names(tab) == "SampleNotes"] <- "SampleAppearance"
     write_latex(tab, row.names = "", file = "tables/sample-notes.tex")
-    cat("\\showSampleNotestrue", file = "sqs-data.tex", append = TRUE)
+    cat("\\showSampleNotestrue", file = "sqs-params.tex", append = TRUE)
   } else {
-    cat("\\showSampleNotesfalse", file = "sqs-data.tex", append = TRUE)
+    cat("\\showSampleNotesfalse", file = "sqs-params.tex", append = TRUE)
   }
 }
 
