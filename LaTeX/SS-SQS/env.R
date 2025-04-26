@@ -1,7 +1,5 @@
 library(helpr)
 library(wranglr)
-library(SomaDataIO)
-library(SomaPlotr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
