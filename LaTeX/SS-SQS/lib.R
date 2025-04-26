@@ -23,8 +23,8 @@
 sqs_wrapper <- function(skip_med = FALSE, skip_cal = FALSE,
                         use_log_scale = TRUE,
                         skip_sat_check = TRUE, rfu_thresh = 80000,
-                        hyb_fig_scale = 1, hyb_fig_width = 5,
-                        med_fig_scale = 1, med_fig_width = 5,
+                        hyb_fig_scale = 1, hyb_fig_width = 10,
+                        med_fig_scale = 1, med_fig_width = 10,
                         cal_fig_scale = 1) {
 
   signal_info("Loading SQS inputs from `sqs-params.txt` ...")
@@ -136,6 +136,7 @@ parse_template_pairs <- function() {
   }
   template_pairs
 }
+
 
 load_adat_pairs <- function(adat) {
   adat_pairs <- list()
@@ -359,11 +360,11 @@ create_med_norm_data <- function(adat, fig_scale, fig_width) {
                   file = "tables/med-norm.tex")
 
   med_fails <- calc_norm_fails(adat, add_field = "ExtIdentifier") |>
-    dplyr::select(-row_names) |>
     rm_rn() |>
-    col2rn("ExtIdentifier")
+    col2rn("ExtIdentifier") |>
+    dplyr::select(SampleGroup, all_of(med_names))
 
-  rn_name <- ifelse(is.null(adat$ExtIdentifier), "", "ExtIdentifier")
+  rn_name  <- ifelse(is.null(adat$ExtIdentifier), "", "ExtIdentifier")
   were_was <- ifelse(nrow(med_fails) == 1L, "was", "were")
   plural   <- ifelse(nrow(med_fails) == 1L, "", "s")
 
@@ -372,9 +373,7 @@ create_med_norm_data <- function(adat, fig_scale, fig_width) {
   cat(sprintf("\\renewcommand{\\NumMedFails}{%i sample%s}\n", nrow(med_fails),
               plural))
 
-  med_fails <- med_fails[order(med_fails$SampleId), ]
   med_fails <- setNames(med_fails, gsub("([0-9])$", "\\1\\\\%", names(med_fails)))
-  med_fails <- setNames(med_fails, gsub("(%)$", "\\1 Dilution", names(med_fails)))
   med_fails <- setNames(med_fails, gsub("_", "\\\\_", names(med_fails)))
 
   if ( nrow(med_fails) > 0L ) {
