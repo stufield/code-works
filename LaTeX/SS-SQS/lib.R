@@ -48,7 +48,7 @@ sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
   adat <- SomaDataIO::read_adat(template_pairs$Adat)
   sample_type_table <- table(adat$SampleType)
   adat <- dplyr::filter(adat, SampleType == "Sample")
-  template_pairs$apts <- SomaDataIO::match_seqIds(template_pairs$apts, names(adat))
+  template_pairs$apts <- SomaDataIO::matchSeqIds(template_pairs$apts, names(adat))
 
   if ( nrow(adat) == 0L || !"SampleType" %in% names(adat) ) {
     stop("Error parsing adat on `SampleType` columns", call. = FALSE)
@@ -58,13 +58,13 @@ sqs_wrapper <- function(hyb_fig_scale = 1, med_fig_scale = 1,
   signal_info("Processing Adat meta data ...")
   adat_pairs <- load_adat_pairs(adat)
 
-  signal_info("Writing sqs-data.tex ...")
+  signal_info("Writing sqs-params.tex ...")
   write_sqs_data_tex(template_pairs, adat_pairs, adat, sample_type_table)
 
   if ( use_log_scale ) {
-    cat(sprintf("\\useLogScaletrue\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\useLogScaletrue\n"), file = "sqs-params.tex", append = TRUE)
   } else {
-    cat(sprintf("\\useLogScalefalse\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\useLogScalefalse\n"), file = "sqs-params.tex", append = TRUE)
   }
   signal_done("done")
 
@@ -169,7 +169,7 @@ load_adat_pairs <- function(adat) {
 write_sqs_data_tex <- function(template_pairs, adat_pairs,
                                adat, sample_type_table) {
 
-  out_file <- file("sqs-data.tex", open = "w")
+  out_file <- file("sqs-params.tex", open = "w")
   on.exit(close(out_file))
 
   process_pair <- function(template_pairs, adat_pairs, key) {
@@ -250,7 +250,7 @@ create_hyb_norm_data <- function(adat, fig_scale, fig_width,
   SomaPlotr::figure("plots/hyb-norm.pdf", 4.4, 5 * fig_width, scale = fig_scale)
   on.exit(SomaPlotr::close_figure("plots/hyb-norm.pdf"))
   tab <- plot_scale_factors(adat, drop_hyb = FALSE, do_cdf = FALSE)
-  write_latex(tab, row.names = "Run", file = "tables/hyb-norm.tex")
+  #write_latex(tab, row_names = "Run", file = "tables/hyb-norm.tex")
 
   hyb_fails <- adat[abs(log(adat$HybControlNormScale, base = 2)) > log(2.5, base = 2), ]
 
@@ -259,16 +259,16 @@ create_hyb_norm_data <- function(adat, fig_scale, fig_width,
 
   cat(sprintf("\\renewcommand{\\NumHybFail}{%s %i sample%s}\n",
               were_was, nrow(hyb_fails), plural),
-      file = "sqs-data.tex", append = TRUE)
+      file = "sqs-params.tex", append = TRUE)
 
   if ( nrow(hyb_fails) > 0L ) {
-    cat(sprintf("\\HybFailstrue\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\HybFailstrue\n"), file = "sqs-params.tex", append = TRUE)
     temp_hyb_fails <- hyb_fails
     row.names(temp_hyb_fails) <- temp_hyb_fails$ExtIdentifier
     write_latex(temp_hyb_fails[, c("PlateId", "SampleId", "HybControlNormScale")],
-                file = "tables/hyb-fail.tex", row.names = "ExtIdentifier")
+                file = "tables/hyb-fail.tex", row_names = "ExtIdentifier")
   } else {
-    cat(sprintf("\\HybFailsfalse\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\HybFailsfalse\n"), file = "sqs-params.tex", append = TRUE)
   }
 
   list(hyb_fails = hyb_fails)
@@ -318,13 +318,13 @@ create_saturation_data <- function(adat, threshold) {
 
   # write out variables
   if ( length(saturated) > 0L ) {
-    cat(sprintf("\\Saturationtrue\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\Saturationtrue\n"), file = "sqs-params.tex", append = TRUE)
     if ( length(saturated) > 1L ) {
       cat(sprintf("\\renewcommand{\\NumSaturation}{were %i SOMAmers}\n",
-                  length(saturated)), file = "sqs-data.tex", append = TRUE)
+                  length(saturated)), file = "sqs-params.tex", append = TRUE)
     } else {
       cat("\\renewcommand{\\NumSaturation}{was 1 SOMAmer}\n",
-          file = "sqs-data.tex", append = TRUE)
+          file = "sqs-params.tex", append = TRUE)
     }
 
     # write out table
@@ -338,7 +338,7 @@ create_saturation_data <- function(adat, threshold) {
     tbldata <- cbind(tbldata, min_rfu)
     write_latex(tbldata, file = "tables/saturation.tex", write.rownames = FALSE)
   } else {
-    cat(sprintf("\\Saturationfalse\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\Saturationfalse\n"), file = "sqs-params.tex", append = TRUE)
   }
 }
 
@@ -346,7 +346,7 @@ create_saturation_data <- function(adat, threshold) {
 create_med_norm_data <- function(adat, fig_scale, legend_scale,
                                  fig_width, jitter_x, use_log_scale) {
 
-  med_names <- grep("^NormScale", names(adat), value = TRUE)
+  med_names <- get_norms(adat)
 
   if ( length(med_names) == 0L ) {
     stop("No Med Norm Scale factors found")
@@ -356,21 +356,12 @@ create_med_norm_data <- function(adat, fig_scale, legend_scale,
   SomaPlotr::figure("plots/med-norm.pdf", 5, 5 * fig_width, scale = fig_scale)
   on.exit(SomaPlotr::close_figure("plots/med-norm.pdf"))
   tab <- plot_scale_factors(adat, drop_hyb = TRUE, do_cdf = FALSE)
-  write_latex(tab, row.names = "Run: Dilution", file = "tables/med-norm.tex")
+  #write_latex(tab, row_names = "Run: Dilution", file = "tables/med-norm.tex")
 
-  med_fails <- adat[, c("SampleId", med_names)]
+  med_fails <- adat[, c("SampleId", med_names)] |>
+    set_rn(adat$ExtIdentifier %||% adat$SampleId)
 
-  if ( any(is.na(adat$ExtIdentifier)) ) {
-    row.names(med_fails) <- seq_len(nrow(med_fails))
-    rn_name <- ""
-  } else {
-    if ( any(table(adat$ExtIdentifier) > 1L) ) { # if duplicates can't assign rn
-      row.names(med_fails) <- as.character(adat$SampleId)
-    } else {
-      row.names(med_fails) <- as.character(adat$ExtIdentifier)
-    }
-    rn_name <- "ExtIdentifier"
-  }
+  rn_name <- ifelse(is.null(adat$ExtIdentifier), "", "ExtIdentifier")
 
   med_fails[, 2:ncol(med_fails)] <- apply(as.data.frame(med_fails[, 2:ncol(med_fails)]),
                                           2, function(sf) {
@@ -391,14 +382,14 @@ create_med_norm_data <- function(adat, fig_scale, legend_scale,
   plural   <- ifelse(nrow(med_fails) == 1L, "", "s")
 
   cat(sprintf("\\renewcommand{\\NumMedFail}{%s %i sample%s}\n", were_was,
-              nrow(med_fails), plural), file = "sqs-data.tex", append = TRUE)
+              nrow(med_fails), plural), file = "sqs-params.tex", append = TRUE)
   cat(sprintf("\\renewcommand{\\NumMedFails}{%i sample%s}\n", nrow(med_fails),
-              plural), file = "sqs-data.tex", append = TRUE)
+              plural), file = "sqs-params.tex", append = TRUE)
 
   med_fails <- med_fails[order(med_fails$SampleId), ]
 
   if ( nrow(med_fails) > 0L ) {
-    cat(sprintf("\\MedFailstrue\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\MedFailstrue\n"), file = "sqs-params.tex", append = TRUE)
     names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
                                                   function(nm) gsub("[.]", " ", nm))
     names(med_fails)[2:ncol(med_fails)] <- sapply(names(med_fails)[2:ncol(med_fails)],
@@ -423,10 +414,10 @@ create_med_norm_data <- function(adat, fig_scale, legend_scale,
         setNames(setdiff(names(med_fails), "SampleId"))
     }
 
-    write_latex(med_fails, file = "tables/med_fail.tex", row.names = rn_name)
+    write_latex(med_fails, file = "tables/med_fail.tex", row_names = rn_name)
 
   } else {
-    cat(sprintf("\\MedFailsfalse\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\MedFailsfalse\n"), file = "sqs-params.tex", append = TRUE)
   }
 
   list(med_fails = med_fails)
@@ -465,16 +456,16 @@ create_cal_sop_data <- function(adat, template_pairs, fig_scale, legend_scale) {
   tail_data <- set_rn(tail_data, tail_data$SomaId)
   tail_data <- tail_data[, setdiff(names(tail_data), "SomaId")]
 
-  write_latex(sop_data$cal_table, file = "tables/cal-sop.tex", row.names = "Run")
-  write_latex(tail_data, file = "tables/tail-apts.tex", row.names = "SomaId")
+  write_latex(sop_data$cal_table, file = "tables/cal-sop.tex", row_names = "Run")
+  write_latex(tail_data, file = "tables/tail-apts.tex", row_names = "SomaId")
   were_was <- ifelse(nrow(tail_data) == 1L, "was", "were")
   plural   <- ifelse(nrow(tail_data) == 1L, "", "s")
 
   cat(sprintf("\\renewcommand{\\NumCalFail}{%s %i analyte%s}\n",
               were_was, nrow(tail_data), plural),
-      file = "sqs-data.tex", append = TRUE)
+      file = "sqs-params.tex", append = TRUE)
   if ( nrow(tail_data) > 0L ) {
-    cat(sprintf("\\CalFailstrue\n"), file = "sqs-data.tex", append = TRUE)
+    cat(sprintf("\\CalFailstrue\n"), file = "sqs-params.tex", append = TRUE)
   }
 }
 
@@ -482,7 +473,7 @@ create_cal_sop_data <- function(adat, template_pairs, fig_scale, legend_scale) {
 sample_notes_table <- function(adat) {
 
   if ( all(is.na(adat$SampleNotes)) ) {
-    cat("\\showSampleNotesfalse", file = "sqs-data.tex", append = TRUE)
+    cat("\\showSampleNotesfalse", file = "sqs-params.tex", append = TRUE)
     return()
   }
 
@@ -498,10 +489,10 @@ sample_notes_table <- function(adat) {
     }
 
     names(tab)[names(tab) == "SampleNotes"] <- "SampleAppearance"
-    write_latex(tab, row.names = "", file = "tables/sample-notes.tex")
-    cat("\\showSampleNotestrue", file = "sqs-data.tex", append = TRUE)
+    write_latex(tab, row_names = "", file = "tables/sample-notes.tex")
+    cat("\\showSampleNotestrue", file = "sqs-params.tex", append = TRUE)
   } else {
-    cat("\\showSampleNotesfalse", file = "sqs-data.tex", append = TRUE)
+    cat("\\showSampleNotesfalse", file = "sqs-params.tex", append = TRUE)
   }
 }
 
@@ -538,6 +529,7 @@ norm_scale_factors <- function(adat, group, file = NULL) {
 write_latex <- function(data, file, row_names = "Feature",
                         append = FALSE, long = FALSE,
                         caption = NULL, ...) {
+
   if ( long ) {
     table <- "longtable"
   } else {
@@ -547,7 +539,7 @@ write_latex <- function(data, file, row_names = "Feature",
   cols <- c("l", rep("r", ncol(data)))
 
   data <- data |>
-    set_rn(sub("_", "\\_", rownames(mtcars), fixed = TRUE))
+    set_rn(sub("_", "\\_", rownames(data), fixed = TRUE))
 
   header <- sprintf("\\hline\n\\textbf{%s} & \\textbf{%s} \\\\\n\\hline\n",
                     row_names, paste(colnames(data), collapse = "} & \\textbf{"))

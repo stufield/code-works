@@ -41,7 +41,7 @@ plot_scale_factors <- function(data, group = "SampleGroup", drop_hyb = TRUE,
 
   if ( do_cdf ) {
     gg <- refactor_data(data) |>
-      dplyr::select(all_of(medsf), group) |>
+      dplyr::select(all_of(medsf), all_of(group)) |>
       tidyr::gather(key = Mix, value = value, -!!group) |>
       dplyr::mutate(Mix = factor(Mix, levels = medsf)) |>
       ggplot(aes(x = value, colour = !!dplyr::sym(group))) +
@@ -56,7 +56,7 @@ plot_scale_factors <- function(data, group = "SampleGroup", drop_hyb = TRUE,
       NULL
   } else {
     gg <- refactor_data(data) |>
-      dplyr::select(all_of(medsf), group) |>
+      dplyr::select(all_of(medsf), all_of(group)) |>
       tidyr::gather(key = Mix, value = value, -!!group) |>
       dplyr::mutate(Mix = factor(Mix, levels = medsf)) |>
       ggplot(aes(y = value, x = !!dplyr::sym(group),
