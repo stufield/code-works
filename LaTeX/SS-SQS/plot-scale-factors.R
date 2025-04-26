@@ -20,7 +20,6 @@
 #' plotMedNorm(adat, notch = FALSE)  # silence notch warning
 #'
 #' plotMedNorm(adat, do.cdf = TRUE)
-#' @importFrom SomaPlot theme_soma
 #' @importFrom ggplot2 ggplot geom_boxplot geom_hline
 #' @importFrom ggplot2 geom_vline aes geom_jitter scale_color_manual
 #' @importFrom ggplot2 scale_fill_manual scale_x_discrete
@@ -52,7 +51,6 @@ plot_scale_factors <- function(data, group = "SampleGroup", drop_hyb = TRUE,
            y = bquote(italic(P) ~ (X < x))) +
       geom_vline(xintercept = c(0.4, 2.5), linetype = "dashed") +
       facet_wrap(~Mix, scales = "free_y") +
-      theme_soma() +
       NULL
   } else {
     gg <- refactor_data(data) |>
@@ -71,7 +69,6 @@ plot_scale_factors <- function(data, group = "SampleGroup", drop_hyb = TRUE,
       ylab("Scale Factor") +
       ggtitle("Median Normalization Scale Factors") +
       facet_wrap(~Mix) +
-      theme_soma() +
       NULL
   }
   gg

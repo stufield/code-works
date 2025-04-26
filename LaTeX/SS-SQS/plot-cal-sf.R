@@ -94,7 +94,6 @@ plot_cal_sf <- function(adat = NULL, apt_data = NULL, do_log = FALSE,
       scale_color_manual(values = dil_cols) +
       labs(x = "Calibration Scale Factor", y = bquote(italic(P) ~ (X < x))) +
       facet_wrap(~ Plate) +
-      theme_soma(hjust = 0) +
       NULL
 
   } else { # all plates on one figure
