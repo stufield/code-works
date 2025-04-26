@@ -6,7 +6,7 @@ This is a brief placeholder for the full README that I will write later
 
 ## Instructions
 
-1. Fill in `sqs-data.txt`.
+1. Fill in `sqs-params.txt`.
 
 1. Double click on `.RData` file to launch R.
 

@@ -20,15 +20,15 @@
 \includeCalSoptrue      % If no, comment
 
 \newif\ifshowSampleNotes  % Show sample notes table? 
-                % This is automatically set by `sqs-data.tex`
+                % This is automatically set by `sqs-params.tex`
                 % To over-ride place one of these two flags below by uncommenting.
-                % Must be put below \input{sqs-data.tex} in next section
+                % Must be put below \input{sqs-params.tex} in next section
 %\showSampleNotestrue     % set to true
 %\showSampleNotesfalse    % set to false
 \newif\ifuseLogScale  % use log scale for the normalization/calibration factors?
-            % Set by sqs-data.tex, can override by placing one of the next two lines after \input{sqs-data.tex}, but
+            % Set by sqs-params.tex, can override by placing one of the next two lines after \input{sqs-params.tex}, but
             % note that the plots whould be changed accordingly. The R command `sqs_wrapper(use_log_scale = T|F)` both
-            % writes out the correct flag to \input{sqs-data.tex} and generates the corresponding plots
+            % writes out the correct flag to \input{sqs-params.tex} and generates the corresponding plots
 %\useLogScaletrue
 %\useLogScalefalse
 
@@ -69,7 +69,7 @@
 \newcommand{\NumMedFails}{\hl{X}}
 \newcommand{\NumCalFail}{\hl{X}}
 
-\input{sqs-data.tex} % File created by R code
+\input{sqs-params.tex} % File created by R code
 
 
 % ------------------------
