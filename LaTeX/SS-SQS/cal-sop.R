@@ -7,11 +7,10 @@
 #' @param adat A `soma_adat` object with RFU values to be
 #'   tested for SOP acceptance.
 #' @param cals An optional data frame of calibration scale factors. If
-#'   `NULL`, `cals` is created via [getCalSFs()].
-#' @param apt.data An "apt.data" object which contains calibration scale factor
+#'   `NULL`, `cals` is created.
+#' @param apt_data An `apt_data` object which contains calibration scale factor
 #'   data and dilution data. Usually from a call to [getAnalyteInfo()].
-#' @param legend.cex Character expansion for the plot legend (if `plot = TRUE`).
-#' @param do.plot Logical. Include scale factors and acceptance criteria plots?
+#' @param do_plot `logical(1)`. Include scale factors and acceptance criteria plots?
 #' @return An invisibly returned list of calibration SOP metrics:
 #'   \item{cal.table}{A table of calibration statistics for each plate.}
 #'   \item{tail.fails}{A list of the failed SOMAmers by plate.}
@@ -19,24 +18,21 @@
 #'   \item{plots}{A list of 2 `ggplots` for the median test and for the centered
 #'                tail test.}
 #' @author Stu Field
-#' @seealso [getCalSFs()], [plotCalSFs()]
 #' @examples
 #' out <- calibrationSOP(plasma20_hyb_med_cal)
 #'
 #' # `ggplot2` print method performs plotting
 #' out
 #' @importFrom dplyr select filter all_of
-#' @importFrom tibble as_tibble
-#' @importFrom purrr map_if
 #' @export
-calibrationSOP <- function(adat = NULL, cals = NULL, apt.data = NULL,
-                           legend.cex = 1, do.plot = TRUE, verbose = interactive()) {
+sop_calibration <- function(adat = NULL, cals = NULL, apt_data = NULL,
+                            do_plot = TRUE, verbose = interactive()) {
 
   if ( is.null(cals) ) {
-    cals <- getCalSFs(adat, apt.data)
+    cals <- get_cal_sf(adat, apt_data)
   }
 
-  hyb_seqs  <- seqid2apt(seq_HybControlElution)
+  hyb_seqs  <- SomaDataIO::seqid2apt(seq_HybControlElution)
   cals      <- dplyr::filter(cals, !AptName %in% hyb_seqs) # remove HybControls
   cal_names <- grep("AptName|Dilution", names(cals), value = TRUE, invert = TRUE)
   medians   <- dplyr::select(cals, all_of(cal_names)) |>
@@ -66,23 +62,23 @@ calibrationSOP <- function(adat = NULL, cals = NULL, apt.data = NULL,
   lgl <- vapply(tails, function(.x) length(.x) / nrow(cals) > 0.05, NA)
   tail_fails <- cal_names[lgl]
 
-  if ( do.plot ) {
+  if ( do_plot ) {
     plural <- ifelse(length(cal_names) > 1L, "s", "")
     p <- list()
-    p$median_test <- plotCalSFs(
-      apt.data    = cals,
+    p$median_test <- plot_cal_sf(
+      apt_data    = cals,
       ablines     = c(0.8, 1.2),
-      by.dilution = FALSE,
+      by_dilution = FALSE,
       main        = sprintf("Median Test: Median%s within (0.8-1.2)", plural)
     )
 
     # Now center the distribution on 1 and look at tails
     center_cals <- cals |>
       purrr::map_if(is.numeric, function(.x) .x - median(.x) + 1) |>
-      as_tibble()
-    p$tail_test <- plotCalSFs(center_cals, apt.data = center_cals,
-                              ablines = c(0.6, 1.4), by.dilution = FALSE,
-                              main = "Tail Test: 95% median +/- 0.4")
+      tibble::as_tibble()
+    p$tail_test <- plot_cal_sf(center_cals, apt_data = center_cals,
+                               ablines = c(0.6, 1.4), by_dilution = FALSE,
+                               main = "Tail Test: 95% median +/- 0.4")
   } else {
     p <- NULL
   }

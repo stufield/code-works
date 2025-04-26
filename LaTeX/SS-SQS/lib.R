@@ -1,23 +1,23 @@
 # ----- sqs_wrapper documention ----- #
 # Figure sizes:
-# Proportional scaling of figure size. Default=1
-# @param hyb.fig.scale
-# @param med.fig.scale
-# @param cal.fig.scale
+#   Proportional scaling of figure size. Default=1
+# @param hyb_fig_scale
+# @param med_fig_scale
+# @param cal_fig_scale
 #
 # Legend sizes:
-# Proportional scaling of legend size. Default=1
+#   Proportional scaling of legend size. Default=1
 # @param med.legend.scale
 # @param cal.legend.scale
 #
 # Figure widths:
-# Proportional scaling of figure width. Used for studies with
+#   Proportional scaling of figure width. Used for studies with
 # many plates to provide room for boxes
 # @param hyb_fig_width
 # @param med_fig_width
 #
 # Boxplot x-axis:
-# Jitter labels on x-axis so that they don't overlap
+#   Jitter labels on x-axis so that they don't overlap
 # @param hyb_jitter_x
 # @param med_jitter_x
 #
@@ -246,12 +246,10 @@ write_sqs_data_tex <- function(template_pairs, adat_pairs,
 create_hyb_norm_data <- function(adat, fig_scale, fig_width,
                                  jitter_x, use_log_scale) {
 
+  # This is now a ggplot; save with ggsave()
   SomaPlotr::figure("plots/hyb-norm.pdf", 4.4, 5 * fig_width, scale = fig_scale)
   on.exit(SomaPlotr::close_figure("plots/hyb-norm.pdf"))
-  par(mar = c(3.2, 4, 3, 2))
-  tab <- plot_scale_factors(adat, hyb = TRUE, scale = fig_scale,
-                            as_boxplot = TRUE, jitter_x = jitter_x,
-                            use_log_scale = use_log_scale)
+  tab <- plot_scale_factors(adat, drop_hyb = FALSE, do_cdf = FALSE)
   write_latex(tab, row.names = "Run", file = "tables/hyb-norm.tex")
 
   hyb_fails <- adat[abs(log(adat$HybControlNormScale, base = 2)) > log(2.5, base = 2), ]
@@ -354,11 +352,10 @@ create_med_norm_data <- function(adat, fig_scale, legend_scale,
     stop("No Med Norm Scale factors found")
   }
 
+  # this is now a ggplot; save with ggsave()
   SomaPlotr::figure("plots/med-norm.pdf", 5, 5 * fig_width, scale = fig_scale)
   on.exit(SomaPlotr::close_figure("plots/med-norm.pdf"))
-  tab <- plot_scale_factors(adat, hyb = FALSE, as.boxplot = TRUE,
-                            scale = fig_scale, legend.cex = legend_scale,
-                            jitter.x = jitter_x, use_log_scale = use_log_scale)
+  tab <- plot_scale_factors(adat, drop_hyb = TRUE, do_cdf = FALSE)
   write_latex(tab, row.names = "Run: Dilution", file = "tables/med-norm.tex")
 
   med_fails <- adat[, c("SampleId", med_names)]
@@ -446,9 +443,11 @@ create_cal_sop_data <- function(adat, template_pairs, fig_scale, legend_scale) {
   apt_data <- SomaDataIO::getAnalyteInfo(adat)
   apt_data <- apt_data[apts, ]
 
+  sop_data <- sop_calibration(adat2, apt.data = apt_data)
+  # this is now a ggplot; save with ggsave()
+  # save plots here with: sop_data$plots
   SomaPlotr::figure("plots/cal-sop.pdf", 2.9 * 1.6, 5.8 * 1.6, scale = fig_scale)
-  sop_data <- sop_calibration(adat2, apt.data = apt_data, legend.cex = legend_scale)
-  on.exit(SomaPlotr::close_figure("plots/cal-sop.pdf"))
+
   tail_apts <- unique(unlist(sop_data$tail_fails))
   new_rn <- vapply(row.names(sop_data$cal_table), function(name) {
     q <- 0
@@ -509,7 +508,7 @@ sample_notes_table <- function(adat) {
 
 norm_scale_factors <- function(adat, group, file = NULL) {
 
-  pars <- c(par_def, mfrow = c(1L, 3L))
+  pars <- c(par_def, list(mfrow = c(1L, 3L)))
   withr::local_par(list(pars))
 
   if ( all(group %in% names(adat)) ) {
@@ -519,7 +518,7 @@ norm_scale_factors <- function(adat, group, file = NULL) {
   }
 
   SomaPlotr::figure(file, 3, 9)
-  on.exit(SomaPlotr::close_figure(file))
+  withr::defer(SomaPlotr::close_figure(file))
 
   boxplot(split(log2(adat$NormScale.005), group),
           main = "Median Normalization: 0.005%",
@@ -585,9 +584,34 @@ write_latex <- function(data, file, row_names = "Feature",
 }
 
 
+get_norms <- function(adat, drop_hyb = TRUE) {
+  nms <- grep("^NormScale|^Med\\.Scale\\.|^HybControlNorm",
+              names(adat), value = TRUE)
+  if ( drop_hyb ) {
+    nms <- grep("HybControlNorm", nms,
+                value = TRUE, invert = TRUE)
+  }
+  nms
+}
+
+
 par_def <- list(mgp = c(2.00, 0.75, 0.00), mar = c(3L, 4L, 3L, 1L))
 
 
 col_string <- c("steelblue", "red", "darkgreen", "darkorchid4",
                 "cyan", "orange", "black", "grey", "#990066", "green",
                 "#24135F")
+
+
+seq_HybControlElution <- c("2171-12", "2178-55", "2194-91",
+                           "2229-54", "2249-25", "2273-34",
+                           "2288-7", "2305-52", "2312-13",
+                           "2359-65", "2430-52", "2513-7")
+
+
+seq_Spuriomer <- c("2052-1", "2053-2", "2054-3", "2055-4",
+                   "2056-5", "2057-6", "2058-7", "2060-9",
+                   "2061-10", "4666-193", "4666-194", "4666-195",
+                   "4666-199", "4666-200", "4666-202", "4666-205",
+                   "4666-206", "4666-212", "4666-213", "4666-214")
+
