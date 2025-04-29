@@ -241,7 +241,7 @@ create_hyb_norm_data <- function(adat, fig_scale, fig_width) {
     do.call(what = "rbind") |>
     as.data.frame()
   tbl <- tbl[, c("Min.", "Median", "Max.")]
-  write_latex_tbl(tbl, rn_label = "Run", file = "tables/hyb-norm.tex")
+  write_latex_tbl(tbl, "tables/hyb-norm.tex", rn_label = "Run")
 
   p <- plot_scale_factors(adat, drop_hyb = FALSE, do_cdf = FALSE)
   ggsave("plots/hyb-norm.pdf", p, scale = fig_scale, width = fig_width)
@@ -257,7 +257,7 @@ create_hyb_norm_data <- function(adat, fig_scale, fig_width) {
     cat("\\HybFailstrue\n")
     temp_hyb_fails <- set_rn(hyb_fails, hyb_fails$ExtIdentifier)
     write_latex_tbl(temp_hyb_fails[, c("PlateId", "SampleId", "HybControlNormScale")],
-                    file = "tables/hyb-fail.tex", rn_label = "ExtIdentifier")
+                    "tables/hyb-fail.tex", rn_label = "ExtIdentifier")
   } else {
     cat("\\HybFailsfalse\n")
   }
@@ -327,8 +327,7 @@ create_saturation_data <- function(adat, threshold) {
     min_val  <- as.matrix(apply(nadat[, saturated], 2, min))
     colnames(min_val) <- "Minimum RFU"
     tbl <- cbind(tbl, min_val)
-    write_latex_tbl(as.data.frame(tbl), file = "tables/saturation.tex",
-                    write.rownames = FALSE)
+    write_latex_tbl(as.data.frame(tbl), "tables/saturation.tex", include_rn = FALSE)
   } else {
     cat("\\Saturationfalse\n")
   }
@@ -356,8 +355,7 @@ create_med_norm_data <- function(adat, fig_scale, fig_width) {
   p <- plot_scale_factors(adat, drop_hyb = TRUE, do_cdf = FALSE)
   ggsave("plots/med-norm.pdf", p, scale = fig_scale, width = fig_width)
 
-  write_latex_tbl(tbl, rn_label = "Run: Dilution",
-                  file = "tables/med-norm.tex")
+  write_latex_tbl(tbl, "tables/med-norm.tex", rn_label = "Run: Dilution")
 
   med_fails <- calc_norm_fails(adat, add_field = "ExtIdentifier") |>
     rm_rn() |>
@@ -374,11 +372,10 @@ create_med_norm_data <- function(adat, fig_scale, fig_width) {
               plural))
 
   med_fails <- setNames(med_fails, gsub("([0-9])$", "\\1\\\\%", names(med_fails)))
-  med_fails <- setNames(med_fails, gsub("_", "\\\\_", names(med_fails)))
 
   if ( nrow(med_fails) > 0L ) {
     cat("\\MedFailstrue\n")
-    write_latex_tbl(med_fails, file = "tables/med-fail.tex", rn_label = rn_name)
+    write_latex_tbl(med_fails, "tables/med-fail.tex", rn_label = rn_name)
   } else {
     cat("\\MedFailsfalse\n")
   }
@@ -419,8 +416,8 @@ create_cal_sop_data <- function(adat, template_pairs, fig_scale) {
   tail_data <- set_rn(tail_data, tail_data$SomaId)
   tail_data <- tail_data[, setdiff(names(tail_data), "SomaId")]
 
-  write_latex_tbl(sop_data$cal_table, file = "tables/cal-sop.tex", rn_label = "Run")
-  write_latex_tbl(tail_data, file = "tables/tail-apts.tex", rn_labels = "Feature")
+  write_latex_tbl(sop_data$cal_table, "tables/cal-sop.tex", rn_label = "Run")
+  write_latex_tbl(tail_data, "tables/tail-apts.tex", rn_labels = "Feature")
   were_was <- ifelse(nrow(tail_data) == 1L, "was", "were")
   plural   <- ifelse(nrow(tail_data) == 1L, "", "s")
 
@@ -456,7 +453,7 @@ sample_notes_table <- function(adat) {
 
     tbl$SampleNotes <- gsub("%", "\\\\%", tbl$SampleNotes)
     tbl <- dplyr::rename(tbl, SampleAppearance = "SampleNotes")  # rename
-    write_latex_tbl(tbl, rn_label = "", file = "tables/sample-notes.tex")
+    write_latex_tbl(tbl, "tables/sample-notes.tex")
     cat("\\showSampleNotestrue")
   } else {
     cat("\\showSampleNotesfalse")
@@ -490,50 +487,6 @@ norm_scale_factors <- function(adat, group, file = NULL) {
           main = "Median Normalization: 40%",
           ylab = expression(log[2](Normalization ~ Scale ~ Factor)),
           xlab = "Study", ylim = ylim)
-}
-
-
-write_latex_tbl <- function(data, file, rn_label = "", append = FALSE,
-                            long = FALSE, caption = NULL, ...) {
-
-  stopifnot(is.data.frame(data))
-  withr::local_output_sink(file, append = append)
-
-  table <- ifelse(long, "longtable", "tabular")
-  cols  <- c("l", rep_len("r", ncol(data)))
-
-  data <- data |>
-    set_rn(gsub("_", "\\_", rownames(data), fixed = TRUE))
-
-  header <- sprintf("\\hline\n\\textbf{%s} & \\textbf{%s} \\\\\n\\hline\n",
-                    rn_label, paste(names(data), collapse = "} & \\textbf{"))
-
-  cat(sprintf("\\begin{%s}{", table), cols, "}\n", sep = "")
-
-  if ( !is.null(caption) ) {
-    sprintf("\\multicolumn{%i}{c}\n{\\small \\textbf{\\tablename\\ \\thetable{} -- %s}} \\\\\n",
-            length(cols), caption) |> cat()
-  }
-
-  cat(header)
-
-  if ( long ) {
-    cat("\\endfirsthead\n\n")
-    sprintf("\\multicolumn{%i}{c}\n{{\\tablename\\ \\thetable{} -- continued from previous page}} \\\\\n",
-            length(cols)) |> cat()
-    cat(header)
-    cat("\\endhead\n\n")
-  }
-
-  for ( i in seq_len(ncol(data)) ) {
-    if ( is.numeric(data[, i]) ) {
-      data[, i] <- format(data[, i], nsmall = 2L, digits = 2L,
-                          scientific = abs(min(data[, i])) < 0.01)
-    }
-  }
-  write.table(data, sep = " & ", quote = FALSE,
-              col.names = FALSE, row.names = TRUE, eol = "\\\\\n", ...)
-  cat(sprintf("\\hline\n\\end{%s}\n", table))
 }
 
 
