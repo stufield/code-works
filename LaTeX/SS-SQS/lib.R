@@ -439,9 +439,11 @@ sample_notes_table <- function(adat) {
     return(invisible(NULL))
   }
 
+  cols <- ifelse(is.null(adat$ExtIdentifier), "SampleId", "ExtIdentifier")
+
   tbl <- data.frame(adat) |>   # strip class
     dplyr::filter(SampleNotes != "" | !is.na(SampleNotes)) |>
-    dplyr::select(ExtIdentifier, SampleId, SampleNotes) |>
+    dplyr::select(all_of(cols), SampleNotes) |>
     dplyr::arrange(SampleNotes)
 
   if ( nrow(tbl) > 0L ) {
@@ -453,7 +455,7 @@ sample_notes_table <- function(adat) {
 
     tbl$SampleNotes <- gsub("%", "\\\\%", tbl$SampleNotes)
     tbl <- dplyr::rename(tbl, SampleAppearance = "SampleNotes")  # rename
-    write_latex_tbl(tbl, "tables/sample-notes.tex")
+    write_latex_tbl(tbl, "tables/sample-notes.tex", rn_label = "Sample ID")
     cat("\\showSampleNotestrue")
   } else {
     cat("\\showSampleNotesfalse")
