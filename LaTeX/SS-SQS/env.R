@@ -11,5 +11,5 @@ source("plot-cal-sf.R")
 source("plot-scale-factors.R")
 source("lib.R")
 load("norm-objects.rda")
-SSmenu <- readRDS("SSmenu.rds")
+v3menu <- readRDS("v3-menu.rds")
 

@@ -122,11 +122,10 @@ parse_template_pairs <- function() {
 
   if ( "AptMenu" %in% names(template_pairs) ) {
     if ( template_pairs$AptMenu %in% c("Premium", "450-plex") ) {
-      column <- c(Premium = "Premium", "450-plex" = "On450")
-      column <- column[template_pairs$AptMenu]
-      ss_menu <- readRDS("SSmenu.rds")
-      apts <- ss_menu[[column]]
-      template_pairs$apts <- apts
+      column  <- c(Premium = "Premium", "450-plex" = "On450")
+      column  <- column[template_pairs$AptMenu]
+      ss_menu <- v3menu[v3menu[[column]] == "Y", ]
+      template_pairs$apts <- ss_menu$SeqId
     } else {
       stop("`AptMenu` must be either Premium or 450-plex. ",
            "Please check `sqs-params.txt`.", call. = FALSE)
@@ -271,8 +270,7 @@ create_saturation_data <- function(adat, threshold) {
   withr::local_output_sink("sqs-params.tex", append = TRUE)
 
   # keep only analytes from premium menu
-  ss_menu <- readRDS("SSmenu.rds")
-  seq_ids <- ss_menu$Premium
+  seq_ids <- v3menu[v3menu$Premium == "Y", "SeqId"]
   apts  <- SomaDataIO::matchSeqIds(seq_ids, names(adat), order.by.x = FALSE)
   nadat <- adat[, c(SomaDataIO::getMeta(adat), apts)]  # subset only premium menu
 
